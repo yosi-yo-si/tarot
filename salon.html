@@ -814,11 +814,12 @@ ${sr?`<p class="core">${rev?c.cr:c.cu}</p>`:`<p class="hl">${rev?c.hr:c.hl}</p>`
     memCid=v;return v;
   }
   const getCode=()=>lsGet("arcana.code")||memCode||"";
-  function setCode(v){memCode=v;lsSet("arcana.code",v);memShop=false;lsDel("arcana.shop")}
-  let memShop=false;
-  const isShop=()=>!!getCode()&&(lsGet("arcana.shop")==="1"||memShop);
-  function setShop(v){memShop=v;if(v)lsSet("arcana.shop","1");else lsDel("arcana.shop")}
-  function clearCode(){memCode=null;lsDel("arcana.code");memSrv=null;lsDel("arcana.srv");setShop(false)}
+  function setCode(v){memCode=v;lsSet("arcana.code",v);memRole="";lsDel("arcana.role");lsDel("arcana.shop")}
+  let memRole="";
+  const role=()=>{if(!getCode())return"";const r=lsGet("arcana.role")||memRole;if(r==="owner"||r==="shop"||r==="cust")return r;return lsGet("arcana.shop")==="1"?"shop":"cust"};
+  const isShop=()=>role()==="shop"||role()==="owner";
+  function setRole(r){memRole=r;lsSet("arcana.role",r);lsDel("arcana.shop")}
+  function clearCode(){memCode=null;lsDel("arcana.code");memSrv=null;lsDel("arcana.srv");memRole="";lsDel("arcana.role");lsDel("arcana.shop")}
   function loadSrv(){
     let s=null;try{s=JSON.parse(lsGet("arcana.srv"))}catch(e){}
     if(!s&&memSrv)s=memSrv;
@@ -858,7 +859,12 @@ ${sr?`<p class="core">${rev?c.cr:c.cu}</p>`:`<p class="hl">${rev?c.hr:c.hl}</p>`
   modeSerious.addEventListener("click",()=>applyMode("serious",true));
 
   function status(){
-    if(getCode()&&isShop())return{stop:false,text:"店頭用:回数の制限はありません"};
+    if(role()==="owner")return{stop:false,text:"オーナー用:回数の制限はありません"};
+    if(role()==="shop"){
+      const s=loadSrv();
+      if(s){const stop=s.left<=0;return{stop:stop,text:stop?"店頭用:今日のAI版の回数を使い切りました":"店頭用(AI):今日はあと"+s.left+"回"}}
+      return{stop:false,text:"店頭用(AI):回数はサーバーで管理されます"};
+    }
     if(getCode()){
       const s=loadSrv();
       if(s){const stop=s.left<=0;return{stop:stop,text:stop?"サロン版:今日の分は引き終えました。また明日どうぞ":"サロン版:今日はあと"+s.left+"回引けます"}}
@@ -910,7 +916,7 @@ ${sr?`<p class="core">${rev?c.cr:c.cu}</p>`:`<p class="hl">${rev?c.hr:c.hl}</p>`
         if(r.ok&&j&&j.ok){
           const cards=Array.isArray(j.cards)?j.cards:[{i:j.i,rev:j.rev}];
           const okc=cards.length===(n===3?3:1)&&cards.every(c=>Number.isInteger(c.i)&&c.i>=0&&c.i<22);
-          if(okc)return{ok:true,cards:cards.map(c=>({i:c.i,rev:!!c.rev})),via:"server",shop:j.shop===true,remaining:j.remaining,ai:j.ai,aiReason:j.ai_reason||"",reading:(typeof j.reading==="string"&&j.reading)?j.reading:null};
+          if(okc)return{ok:true,cards:cards.map(c=>({i:c.i,rev:!!c.rev})),via:"server",shop:j.shop===true,role:(j.role==="owner"||j.role==="shop"||j.role==="cust")?j.role:(j.shop===true?"shop":"cust"),remaining:j.remaining,ai:j.ai,aiReason:j.ai_reason||"",reading:(typeof j.reading==="string"&&j.reading)?j.reading:null};
         } else if(j&&(j.error==="bad_code"||j.error==="limit"||j.error==="busy"||j.error==="locked")){
           return{ok:false,error:j.error};
         }
@@ -947,7 +953,7 @@ ${sr?`<p class="core">${rev?c.cr:c.cu}</p>`:`<p class="hl">${rev?c.hr:c.hl}</p>`
       return;
     }
     const st=load();
-    if(r.via==="server"){setShop(!!r.shop);if(!r.shop)saveSrv(typeof r.remaining==="number"?r.remaining:0)}
+    if(r.via==="server"){setRole(r.role);if(r.role!=="owner")saveSrv(typeof r.remaining==="number"?r.remaining:0)}
     else st.n+=1;
     let notice="";
     if(r.via==="fallback")notice="サーバーにつながらなかったため、この端末の回数で引きました";
@@ -1009,8 +1015,9 @@ ${sr?`<p class="core">${rev?c.cr:c.cu}</p>`:`<p class="hl">${rev?c.hr:c.hl}</p>`
       clearTimeout(tm);
       let j=null;try{j=await r.json()}catch(e2){}
       if(r.ok&&j&&j.ok){
-        setCode(v);setShop(!!j.shop);codeIn.value="";memSrv=null;lsDel("arcana.srv");
-        salonMsg.textContent=j.shop?"店頭用の合言葉です。AIの読み解きが使えます。":"設定しました。1日1回、サーバーで回数を数えます。";
+        const rr=(j.role==="owner"||j.role==="shop"||j.role==="cust")?j.role:(j.shop?"shop":"cust");
+        setCode(v);setRole(rr);codeIn.value="";memSrv=null;lsDel("arcana.srv");
+        salonMsg.textContent=rr==="owner"?"オーナー用の合言葉です。回数の制限なしで、AIの読み解きが使えます。":rr==="shop"?"店頭用の合言葉です。AIの読み解きが使えます。":"設定しました。1日の回数は、サーバーで数えます。";
       }else{
         salonMsg.textContent=j&&j.error==="locked"?MSG.locked:MSG.bad_code;
       }

@@ -113,6 +113,18 @@ async function bump(kv, key) {
   return n;
 }
 
+function roleOf(env, code) {
+  if (!code) return null;
+  if (env.OWNER_CODE && safeEqual(code, env.OWNER_CODE)) return "owner";
+  if (env.SHOP_CODE && safeEqual(code, env.SHOP_CODE)) return "shop";
+  if (env.ACCESS_CODE && safeEqual(code, env.ACCESS_CODE)) return "cust";
+  return null;
+}
+const num = (v, d) => {
+  const n = parseInt(v || "", 10);
+  return Number.isFinite(n) && n >= 0 ? n : d;
+};
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -160,20 +172,24 @@ export default {
       if ((await getCount(env.COUNTS, failKey)) >= MAX_FAILS_PER_IP) {
         return json({ ok: false, error: "locked" }, 429, headers);
       }
-      const isShop = !!env.SHOP_CODE && safeEqual(code, env.SHOP_CODE);
-      if (!code || (!isShop && !safeEqual(code, env.ACCESS_CODE))) {
+      const role = roleOf(env, code);
+      if (!role) {
         await bump(env.COUNTS, failKey);
         return json({ ok: false, error: "bad_code" }, 401, headers);
       }
-      return json({ ok: true, shop: isShop }, 200, headers);
+      return json({ ok: true, role, shop: role !== "cust" }, 200, headers);
     }
 
     if (url.pathname === "/api/draw" && request.method === "POST") {
       if (!env.ACCESS_CODE || !env.COUNTS) {
         return json({ ok: false, error: "not_configured" }, 500, headers);
       }
-      const limit = parseInt(env.DAILY_LIMIT || "1", 10) || 1;
-      const cap = parseInt(env.DAILY_CAP || "100", 10) || 100;
+      const limits = {
+        cust: num(env.DAILY_LIMIT, 3),
+        shop: num(env.SHOP_LIMIT, 10),
+        owner: num(env.OWNER_CAP, 200),
+      };
+      const cap = num(env.DAILY_CAP, 100);
 
       let body;
       try {
@@ -194,24 +210,26 @@ export default {
       if ((await getCount(env.COUNTS, failKey)) >= MAX_FAILS_PER_IP) {
         return json({ ok: false, error: "locked" }, 429, headers);
       }
-      const isShop = !!env.SHOP_CODE && safeEqual(code, env.SHOP_CODE);
-      if (!isShop && !safeEqual(code, env.ACCESS_CODE)) {
+      const role = roleOf(env, code);
+      if (!role) {
         await bump(env.COUNTS, failKey);
         return json({ ok: false, error: "bad_code" }, 401, headers);
       }
-
-      const userKey = `u:${day}:${clientId}`;
-      const used = isShop ? 0 : await getCount(env.COUNTS, userKey);
-      if (!isShop && used >= limit) {
-        return json({ ok: false, error: "limit", remaining: 0 }, 429, headers);
+      const isShop = role !== "cust";
+      const limit = limits[role];
+      const useKey =
+        role === "cust" ? `u:${day}:${clientId}` : role === "shop" ? `s:${day}` : `o:${day}`;
+      const used = await getCount(env.COUNTS, useKey);
+      if (used >= limit) {
+        return json({ ok: false, error: "limit", role, remaining: 0 }, 429, headers);
       }
       const globalKey = `g:${day}`;
-      if ((await getCount(env.COUNTS, globalKey)) >= cap) {
+      if (role !== "owner" && (await getCount(env.COUNTS, globalKey)) >= cap) {
         return json({ ok: false, error: "busy" }, 429, headers);
       }
 
-      if (!isShop) await bump(env.COUNTS, userKey);
-      await bump(env.COUNTS, globalKey);
+      await bump(env.COUNTS, useKey);
+      if (role !== "owner") await bump(env.COUNTS, globalKey);
       const allowRev = body.allowRev !== false;
       const count = body.spread === 3 ? 3 : 1;
       const pool = Array.from({ length: 22 }, (_, k) => k);
@@ -239,7 +257,8 @@ export default {
           ai_reason: extra.reason || null,
           reading: extra.reading,
           shop: isShop,
-          remaining: isShop ? null : Math.max(0, limit - used - 1),
+          role,
+          remaining: role === "owner" ? null : Math.max(0, limit - used - 1),
         },
         200,
         headers

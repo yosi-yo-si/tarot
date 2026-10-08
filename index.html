@@ -784,7 +784,7 @@ function detailHTML(c,sr){
         clearTimeout(tm);
         let j=null;try{j=await r.json()}catch(e2){}
         if(r.ok&&j&&j.ok){
-          try{localStorage.setItem("arcana.code",v);localStorage.removeItem("arcana.srv");if(j.shop)localStorage.setItem("arcana.shop","1");else localStorage.removeItem("arcana.shop")}catch(e3){}
+          try{const rr=(j.role==="owner"||j.role==="shop"||j.role==="cust")?j.role:(j.shop?"shop":"cust");localStorage.setItem("arcana.code",v);localStorage.removeItem("arcana.srv");localStorage.setItem("arcana.role",rr);localStorage.removeItem("arcana.shop")}catch(e3){}
           msg.textContent="ようこそ。移動します…";
           location.href="salon.html";return;
         }
