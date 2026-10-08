@@ -26,7 +26,7 @@ function cleanQuestion(q) {
 }
 
 async function aiReading(env, cards, question, tone) {
-  if (!env.ANTHROPIC_API_KEY) return { ai: "off", reading: null };
+  if (!env.ANTHROPIC_API_KEY) return { ai: "off", reason: "no_key", reading: null };
   const lines = cards.map((c, k) => {
     const row = CARD_TBL[c.i];
     const label = cards.length === 3 ? POS[k] : "引いた一枚";
@@ -55,14 +55,21 @@ async function aiReading(env, cards, question, tone) {
         messages: [{ role: "user", content: user }],
       }),
     });
-    if (!r.ok) return { ai: "error", reading: null };
+    if (!r.ok) {
+      let msg = "";
+      try {
+        const e = await r.json();
+        msg = ((e.error && e.error.type) || "") + ": " + ((e.error && e.error.message) || "");
+      } catch (e2) {}
+      return { ai: "error", reason: `http_${r.status} ${msg}`.slice(0, 160), reading: null };
+    }
     const j = await r.json();
-    if (j.stop_reason === "max_tokens") return { ai: "error", reading: null };
+    if (j.stop_reason === "max_tokens") return { ai: "error", reason: "max_tokens", reading: null };
     const text = (j.content || []).filter((b) => b.type === "text").map((b) => b.text).join("\n").trim();
-    if (!text) return { ai: "error", reading: null };
+    if (!text) return { ai: "error", reason: "empty:" + (j.stop_reason || ""), reading: null };
     return { ai: "ok", reading: text.slice(0, 3000) };
   } catch (e) {
-    return { ai: "error", reading: null };
+    return { ai: "error", reason: e && e.name === "AbortError" ? "timeout" : "fetch_failed", reading: null };
   } finally {
     clearTimeout(tm);
   }
@@ -119,7 +126,20 @@ export default {
     }
 
     if (url.pathname === "/api/ping") {
-      return json({ ok: true, day: jstDay() }, 200, headers);
+      return json(
+        {
+          ok: true,
+          day: jstDay(),
+          v: "2026-10-09c",
+          kv: !!env.COUNTS,
+          code: !!env.ACCESS_CODE,
+          shop: !!env.SHOP_CODE,
+          ai_key: !!env.ANTHROPIC_API_KEY,
+          model: env.AI_MODEL || "claude-haiku-5-5",
+        },
+        200,
+        headers
+      );
     }
 
     if (url.pathname === "/api/draw" && request.method === "POST") {
@@ -187,6 +207,7 @@ export default {
           rev: cards[0].rev,
           cards,
           ai: extra.ai,
+          ai_reason: extra.reason || null,
           reading: extra.reading,
           shop: isShop,
           remaining: isShop ? null : Math.max(0, limit - used - 1),

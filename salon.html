@@ -907,7 +907,7 @@ ${sr?`<p class="core">${rev?c.cr:c.cu}</p>`:`<p class="hl">${rev?c.hr:c.hl}</p>`
         if(r.ok&&j&&j.ok){
           const cards=Array.isArray(j.cards)?j.cards:[{i:j.i,rev:j.rev}];
           const okc=cards.length===(n===3?3:1)&&cards.every(c=>Number.isInteger(c.i)&&c.i>=0&&c.i<22);
-          if(okc)return{ok:true,cards:cards.map(c=>({i:c.i,rev:!!c.rev})),via:"server",shop:j.shop===true,remaining:j.remaining,ai:j.ai,reading:(typeof j.reading==="string"&&j.reading)?j.reading:null};
+          if(okc)return{ok:true,cards:cards.map(c=>({i:c.i,rev:!!c.rev})),via:"server",shop:j.shop===true,remaining:j.remaining,ai:j.ai,aiReason:j.ai_reason||"",reading:(typeof j.reading==="string"&&j.reading)?j.reading:null};
         } else if(j&&(j.error==="bad_code"||j.error==="limit"||j.error==="busy"||j.error==="locked")){
           return{ok:false,error:j.error};
         }
@@ -950,7 +950,7 @@ ${sr?`<p class="core">${rev?c.cr:c.cu}</p>`:`<p class="hl">${rev?c.hr:c.hl}</p>`
     if(r.via==="fallback")notice="サーバーにつながらなかったため、この端末の回数で引きました";
     if(r.via==="server"&&question){
       if(r.reading){qIn.value="";qCount.textContent="0 / 300"}
-      else notice="AIの読み解きは今回つくれませんでした。カードの読みだけ表示します";
+      else notice="AIの読み解きは今回つくれませんでした。カードの読みだけ表示します"+(r.aiReason?"(理由: "+r.aiReason+")":"");
     }
     const aiText=(r.via==="server"&&r.reading)?r.reading:null;
     if(n===3){cur3={cards:r.cards,ai:aiText};st.lastS=r.cards;fillSpread(r.cards)}
