@@ -950,7 +950,8 @@ ${sr?`<p class="core">${rev?c.cr:c.cu}</p>`:`<p class="hl">${rev?c.hr:c.hl}</p>`
     if(r.via==="fallback")notice="サーバーにつながらなかったため、この端末の回数で引きました";
     if(r.via==="server"&&question){
       if(r.reading){qIn.value="";qCount.textContent="0 / 300"}
-      else notice="AIの読み解きは今回つくれませんでした。カードの読みだけ表示します"+(r.aiReason?"(理由: "+r.aiReason+")":"");
+      else if(r.shop)notice="AIの読み解きは今回つくれませんでした。カードの読みだけ表示します"+(r.aiReason?"(理由: "+r.aiReason+")":"");
+      else{const ec=(r.aiReason||"").split(/[\s:]/)[0].replace(/^http_/,"").slice(0,12);notice="AIの読み解きは今回つくれませんでした。カードの読みだけ表示します。続くときはサロンにお知らせください"+(ec?"(エラー番号: "+ec+")":"");}
     }
     const aiText=(r.via==="server"&&r.reading)?r.reading:null;
     if(n===3){cur3={cards:r.cards,ai:aiText};st.lastS=r.cards;fillSpread(r.cards)}
