@@ -227,6 +227,15 @@ details.other+details.other{margin-top:10px}
 .salon input[type=text]{flex:1;min-width:0;min-height:44px;padding:0 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);font:inherit;font-size:16px}
 .salon .btn{min-height:44px;padding:0 20px;font-size:.95rem}
 .salon .msg{margin:10px 0 0;min-height:1.4em;color:var(--muted)}
+.qbox{width:min(420px,100%);display:flex;flex-direction:column;gap:6px}
+.qbox label{font-size:.9rem;color:var(--muted)}
+.qbox textarea{width:100%;min-height:92px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--fg);font:inherit;font-size:16px;line-height:1.6;resize:vertical}
+.qbox .qnote{margin:0;font-size:.8rem;color:var(--muted)}
+.qbox .qcount{margin:0;font-size:.8rem;color:var(--muted);text-align:right}
+.ai{padding-bottom:6px}
+.ai p{margin:0 0 1em;line-height:1.95}
+.ai .ai-note{font-size:.8rem;color:var(--muted)}
+.ai+*{margin-top:8px}
 .foot{margin:44px 0 0;color:var(--muted);font-size:.8rem;text-align:center}
 </style>
 </head>
@@ -261,6 +270,12 @@ details.other+details.other{margin-top:10px}
           </div>
           <div class="spread" id="spread" hidden></div>
           <div class="actions">
+            <div class="qbox" id="qBox" hidden>
+              <label for="qIn">相談したいこと(任意)</label>
+              <textarea id="qIn" maxlength="300" rows="3" placeholder="例:仕事を変えるか迷っています" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
+              <p class="qcount" id="qCount" aria-live="off">0 / 300</p>
+              <p class="qnote">入力した文章はAIに送られます。このアプリには保存しません。個人が特定される情報は書かないでください。</p>
+            </div>
             <div class="tabs sm" role="group" aria-label="引く枚数">
               <button type="button" id="nOne" aria-pressed="true">1枚</button>
               <button type="button" id="nThree" aria-pressed="false">3枚(過去・現在・未来)</button>
@@ -719,6 +734,11 @@ function introSpreadHTML(sr){
 <h2 class="intro-title">過去・現在・未来</h2>
 <p class="intro-body">三枚のカードを、左から「過去」「現在」「未来」として読みます。知りたいことを思い浮かべて、引いてみてください。</p>`;
 }
+function escH(t){return String(t).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function aiHTML(t){
+  const ps=String(t).split(/\n{2,}|\n/).map(x=>x.trim()).filter(Boolean).map(x=>`<p>${escH(x)}</p>`).join("");
+  return `<section class="ai"><p class="eyebrow">AIの読み解き</p>${ps}<p class="ai-note">AIが書いた文章です。一つの見方として、参考にしてください。この画面を閉じると消えます。</p></section>`;
+}
 function spreadHTML(cards,sr){
   const lead=sr?SP_LEAD_SER:SP_LEAD_SOFT;
   const blk=cards.map((x,k)=>{
@@ -768,6 +788,8 @@ ${sr?`<p class="core">${rev?c.cr:c.cu}</p>`:`<p class="hl">${rev?c.hr:c.hl}</p>`
   /*LIMIT-END*/
 
   const API="https://muddy-forest-46d0.yosiken0126.workers.dev";
+  const qBox=$("#qBox"),qIn=$("#qIn"),qCount=$("#qCount");
+  qIn.addEventListener("input",()=>{qCount.textContent=Array.from(qIn.value).length+" / 300"});
   const stage=$("#stage"),spreadEl=$("#spread"),nOne=$("#nOne"),nThree=$("#nThree");
   const salonLink=$("#salonLink"),salon=$("#salon"),salonForm=$("#salonForm"),codeIn=$("#codeIn"),salonMsg=$("#salonMsg"),codeOff=$("#codeOff");
   const lsGet=k=>{try{return localStorage.getItem(k)}catch(e){return null}};
@@ -811,8 +833,8 @@ ${sr?`<p class="core">${rev?c.cr:c.cu}</p>`:`<p class="hl">${rev?c.hr:c.hl}</p>`
   }
   const curOf=n=>n===3?cur3:cur1;
   function readingNow(){
-    if(N===3)return cur3?spreadHTML(cur3.cards,serious):introSpreadHTML(serious);
-    return cur1?readingHTML(CARDS[cur1.i],cur1.rev,serious):introHTML(serious);
+    if(N===3)return cur3?(cur3.ai?aiHTML(cur3.ai):"")+spreadHTML(cur3.cards,serious):introSpreadHTML(serious);
+    return cur1?(cur1.ai?aiHTML(cur1.ai):"")+readingHTML(CARDS[cur1.i],cur1.rev,serious):introHTML(serious);
   }
   function applyMode(m,persist){
     serious=(m==="serious");
@@ -843,6 +865,7 @@ ${sr?`<p class="core">${rev?c.cr:c.cu}</p>`:`<p class="hl">${rev?c.hr:c.hl}</p>`
     drawBtn.disabled=s.stop||busy;
     nOne.disabled=nThree.disabled=busy;
     codeOff.hidden=!getCode();
+    qBox.hidden=!getCode();
   }
   function setN(n,persist){
     N=n===3?3:1;
@@ -862,19 +885,19 @@ ${sr?`<p class="core">${rev?c.cr:c.cu}</p>`:`<p class="hl">${rev?c.hr:c.hl}</p>`
     for(let k=0;k<(n===3?3:1);k++){const i=pool.splice(rnd(pool.length),1)[0];cards.push({i:i,rev:allow&&rnd(2)===1})}
     return cards;
   }
-  async function getDraw(n){
+  async function getDraw(n,question){
     const code=getCode();
     if(code){
       try{
-        const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),8000);
+        const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),question?35000:8000);
         const r=await fetch(API+"/api/draw",{method:"POST",headers:{"content-type":"application/json"},signal:ctl.signal,
-          body:JSON.stringify({code:code,clientId:cid(),allowRev:revToggle.checked,spread:n===3?3:1})});
+          body:JSON.stringify({code:code,clientId:cid(),allowRev:revToggle.checked,spread:n===3?3:1,question:question||undefined,tone:serious?"serious":"soft"})});
         clearTimeout(tm);
         let j=null;try{j=await r.json()}catch(e){}
         if(r.ok&&j&&j.ok){
           const cards=Array.isArray(j.cards)?j.cards:[{i:j.i,rev:j.rev}];
           const okc=cards.length===(n===3?3:1)&&cards.every(c=>Number.isInteger(c.i)&&c.i>=0&&c.i<22);
-          if(okc)return{ok:true,cards:cards.map(c=>({i:c.i,rev:!!c.rev})),via:"server",remaining:j.remaining};
+          if(okc)return{ok:true,cards:cards.map(c=>({i:c.i,rev:!!c.rev})),via:"server",remaining:j.remaining,ai:j.ai,reading:(typeof j.reading==="string"&&j.reading)?j.reading:null};
         } else if(j&&(j.error==="bad_code"||j.error==="limit"||j.error==="busy"||j.error==="locked")){
           return{ok:false,error:j.error};
         }
@@ -894,7 +917,9 @@ ${sr?`<p class="core">${rev?c.cr:c.cu}</p>`:`<p class="hl">${rev?c.hr:c.hl}</p>`
     if(busy)return;
     if(status().stop){updateUI();return}
     busy=true;drawBtn.disabled=true;nOne.disabled=nThree.disabled=true;const myId=++drawId;const n=N;
-    const req=getDraw(n);
+    const question=getCode()?Array.from(qIn.value.trim()).slice(0,300).join(""):"";
+    const req=getDraw(n,question);
+    if(question)updateUI("カードを読み解いています。10秒ほどお待ちください");
     if(curOf(n)){reading.classList.add("is-hidden");closeCards(n);await sleep(RM?50:850)}
     const els=n===3?sw:[wrap];
     els.forEach(e=>e.classList.add("shuffling"));await sleep(RM?50:1000);els.forEach(e=>e.classList.remove("shuffling"));
@@ -913,8 +938,13 @@ ${sr?`<p class="core">${rev?c.cr:c.cu}</p>`:`<p class="hl">${rev?c.hr:c.hl}</p>`
     else st.n+=1;
     let notice="";
     if(r.via==="fallback")notice="サーバーにつながらなかったため、この端末の回数で引きました";
-    if(n===3){cur3={cards:r.cards};st.lastS=r.cards;fillSpread(r.cards)}
-    else{cur1=r.cards[0];st.last=r.cards[0];fillSingle(r.cards[0])}
+    if(r.via==="server"&&question){
+      if(r.reading){qIn.value="";qCount.textContent="0 / 300"}
+      else notice="AIの読み解きは今回つくれませんでした。カードの読みだけ表示します";
+    }
+    const aiText=(r.via==="server"&&r.reading)?r.reading:null;
+    if(n===3){cur3={cards:r.cards,ai:aiText};st.lastS=r.cards;fillSpread(r.cards)}
+    else{cur1=Object.assign({},r.cards[0],{ai:aiText});st.last=r.cards[0];fillSingle(r.cards[0])}
     save(st);
     await openCards(n,true);
     await sleep(RM?50:850);
