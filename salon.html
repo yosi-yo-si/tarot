@@ -234,6 +234,7 @@ details.other+details.other{margin-top:10px}
 .qbox .help a,.ai .help a{white-space:nowrap}
 .qbox .help a{color:inherit;font-weight:700}
 .ai .help a{color:inherit;font-weight:700}
+.teaser{margin:0;max-width:420px;text-align:center;font-size:.85rem;color:var(--muted)}
 .qbox .qcount{margin:0;font-size:.8rem;color:var(--muted);text-align:right}
 .ai{padding-bottom:6px}
 .ai p{margin:0 0 1em;line-height:1.95}
@@ -280,6 +281,7 @@ details.other+details.other{margin-top:10px}
               <p class="qnote">入力した文章は、読み解きのためにAnthropic社(米国)のAIに送られます。このアプリには保存しません(Anthropic社では最大30日間保管されます)。氏名や病名など、個人が特定される情報は書かないでください。</p>
               <p class="qnote help">つらい気持ちが続くときは、占いより先に相談してください。よりそいホットライン <a href="tel:0120279338">0120-279-338</a>/#いのちSOS <a href="tel:0120061338">0120-061-338</a>(どちらも24時間・無料)</p>
             </div>
+            <p class="qnote teaser" id="aiTeaser" hidden>AIによる読み解きは、サロン店頭のiPadで体験できます。</p>
             <div class="tabs sm" role="group" aria-label="引く枚数">
               <button type="button" id="nOne" aria-pressed="true">1枚</button>
               <button type="button" id="nThree" aria-pressed="false">3枚(過去・現在・未来)</button>
@@ -874,7 +876,8 @@ ${sr?`<p class="core">${rev?c.cr:c.cu}</p>`:`<p class="hl">${rev?c.hr:c.hl}</p>`
     drawBtn.disabled=s.stop||busy;
     nOne.disabled=nThree.disabled=busy;
     codeOff.hidden=!getCode();
-    qBox.hidden=!getCode();
+    qBox.hidden=!isShop();
+    $("#aiTeaser").hidden=!(getCode()&&!isShop());
     $("#nextBtn").hidden=!(isShop()&&(cur1||cur3))||busy;
   }
   function setN(n,persist){
@@ -927,7 +930,7 @@ ${sr?`<p class="core">${rev?c.cr:c.cu}</p>`:`<p class="hl">${rev?c.hr:c.hl}</p>`
     if(busy)return;
     if(status().stop){updateUI();return}
     busy=true;drawBtn.disabled=true;nOne.disabled=nThree.disabled=true;const myId=++drawId;const n=N;
-    const question=getCode()?Array.from(qIn.value.trim()).slice(0,300).join(""):"";
+    const question=isShop()?Array.from(qIn.value.trim()).slice(0,300).join(""):"";
     const req=getDraw(n,question);
     if(question)updateUI("カードを読み解いています。10秒ほどお待ちください");
     if(curOf(n)){reading.classList.add("is-hidden");closeCards(n);await sleep(RM?50:850)}
@@ -995,12 +998,24 @@ ${sr?`<p class="core">${rev?c.cr:c.cu}</p>`:`<p class="hl">${rev?c.hr:c.hl}</p>`
     salon.hidden=!salon.hidden;salonLink.setAttribute("aria-expanded",String(!salon.hidden));
     if(!salon.hidden){salonMsg.textContent=getCode()?"合言葉が設定されています。":"";codeIn.focus()}
   });
-  salonForm.addEventListener("submit",e=>{
+  salonForm.addEventListener("submit",async e=>{
     e.preventDefault();
     const v=codeIn.value.trim();
     if(!v){salonMsg.textContent="合言葉を入力してください。";return}
-    setCode(v);codeIn.value="";memSrv=null;lsDel("arcana.srv");
-    salonMsg.textContent="設定しました。カードを引くと、サーバーで回数を数えます。";
+    $("#codeSet").disabled=true;salonMsg.textContent="確認しています…";
+    try{
+      const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),8000);
+      const r=await fetch(API+"/api/check",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({code:v}),signal:ctl.signal});
+      clearTimeout(tm);
+      let j=null;try{j=await r.json()}catch(e2){}
+      if(r.ok&&j&&j.ok){
+        setCode(v);setShop(!!j.shop);codeIn.value="";memSrv=null;lsDel("arcana.srv");
+        salonMsg.textContent=j.shop?"店頭用の合言葉です。AIの読み解きが使えます。":"設定しました。1日1回、サーバーで回数を数えます。";
+      }else{
+        salonMsg.textContent=j&&j.error==="locked"?MSG.locked:MSG.bad_code;
+      }
+    }catch(e3){salonMsg.textContent="つながりませんでした。しばらくしてからお試しください。"}
+    $("#codeSet").disabled=false;
     updateUI();
   });
   codeOff.addEventListener("click",()=>{clearCode();salonMsg.textContent="解除しました。";updateUI()});

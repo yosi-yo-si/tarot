@@ -223,7 +223,10 @@ export default {
       }
       const question = cleanQuestion(body.question);
       let extra = { ai: "none", reading: null };
-      if (question) {
+      const aiAllowed = isShop || env.AI_FOR_CUSTOMERS === "1";
+      if (question && !aiAllowed) {
+        extra = { ai: "shop_only", reading: null };
+      } else if (question) {
         extra = await aiReading(env, cards, question, body.tone === "serious" ? "serious" : "soft");
       }
       return json(
