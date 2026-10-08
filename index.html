@@ -199,6 +199,34 @@ details.other+details.other{margin-top:10px}
   .sheet-card{width:min(210px,58vw)}
   .sheet-text{padding-right:0;width:100%}
 }
+
+/* count toggle, spread, salon */
+.tabs.sm button{min-height:40px;padding:0 18px;font-size:.9rem}
+.spread{display:flex;gap:clamp(8px,2vw,24px);justify-content:center;--sw:min(150px,26vw)}
+.sc{display:flex;flex-direction:column;align-items:center;gap:10px}
+.sc-lab{margin:0;font-size:.95rem;font-weight:700;letter-spacing:.3em;color:var(--muted);padding-left:.3em}
+.spread .card-wrap{width:var(--sw);margin-right:8px;margin-bottom:8px}
+.stage.is-spread{grid-template-columns:minmax(0,1fr);justify-items:center}
+.stage.is-spread .deck{width:100%}
+@media (min-width:900px){
+  .stage.is-spread{grid-template-columns:minmax(0,1fr);gap:40px;justify-items:center}
+  .stage.is-spread .reading{justify-self:center;max-width:760px}
+  .spread{--sw:min(200px,19vw)}
+}
+.sp-blk{margin-top:26px;padding-top:20px;border-top:1px solid var(--line)}
+.sp-pos{margin:0;font-size:1.05rem;font-weight:700;letter-spacing:.3em;color:var(--accent)}
+.sp-lead{margin:2px 0 14px;color:var(--muted);font-size:.9rem}
+.sp-name{margin:0;font-family:var(--f-display);font-weight:700;line-height:1.3}
+.sp-name .cn-jp{font-size:1.7rem}
+.sp-blk .hl{font-size:1.25rem}
+.sp-blk .core{font-size:1.15rem}
+.linkbtn{background:none;border:0;padding:8px 10px;min-height:44px;color:var(--muted);font:inherit;font-size:.85rem;text-decoration:underline;cursor:pointer;touch-action:manipulation}
+.salon{max-width:420px;margin:12px auto 0;padding:16px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--fg);font-size:.9rem;text-align:left}
+.salon p{margin:0 0 10px}
+.salon form{display:flex;gap:8px}
+.salon input[type=text]{flex:1;min-width:0;min-height:44px;padding:0 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);font:inherit;font-size:16px}
+.salon .btn{min-height:44px;padding:0 20px;font-size:.95rem}
+.salon .msg{margin:10px 0 0;min-height:1.4em;color:var(--muted)}
 .foot{margin:44px 0 0;color:var(--muted);font-size:.8rem;text-align:center}
 </style>
 </head>
@@ -220,7 +248,7 @@ details.other+details.other{margin-top:10px}
 
   <main>
     <section id="viewDraw" aria-label="カードを引く">
-      <div class="stage">
+      <div class="stage" id="stage">
         <div class="deck">
           <div class="card-wrap" id="card" aria-hidden="true">
             <div class="shadow"></div>
@@ -231,7 +259,12 @@ details.other+details.other{margin-top:10px}
               </div>
             </div>
           </div>
+          <div class="spread" id="spread" hidden></div>
           <div class="actions">
+            <div class="tabs sm" role="group" aria-label="引く枚数">
+              <button type="button" id="nOne" aria-pressed="true">1枚</button>
+              <button type="button" id="nThree" aria-pressed="false">3枚(過去・現在・未来)</button>
+            </div>
             <button type="button" class="btn primary" id="drawBtn">カードを引く</button>
             <label class="switch"><input type="checkbox" id="revToggle" checked><span>逆位置も使う</span></label>
             <p class="remain" id="remain" aria-live="polite"></p>
@@ -256,6 +289,14 @@ details.other+details.other{margin-top:10px}
   </main>
 
   <p class="foot" id="foot">占いは気軽な楽しみとしてお使いください。結果は一つの見方にすぎません。</p>
+  <div class="foot" style="margin-top:8px"><button type="button" class="linkbtn" id="salonLink" aria-expanded="false" aria-controls="salon">サロンのお客様はこちら</button>
+    <div class="salon" id="salon" hidden>
+      <p>サロンでお伝えした合言葉を入れると、1日の回数がサーバーで管理されます。合言葉はこの端末に保存されます。</p>
+      <form id="salonForm" autocomplete="off"><input type="text" id="codeIn" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="合言葉" placeholder="合言葉"><button type="submit" class="btn primary" id="codeSet">使う</button></form>
+      <p class="msg" id="salonMsg" aria-live="polite"></p>
+      <button type="button" class="linkbtn" id="codeOff" hidden>合言葉を解除する</button>
+    </div>
+  </div>
 </div>
 
 <div class="sheet" id="sheet" hidden role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
@@ -665,6 +706,38 @@ function detailHTML(c,sr){
 <div class="scene"><h3>象徴</h3><p>${c.sy}</p></div>
 <div class="scene"><h3>絵柄</h3><p>${c.scene}</p></div>`;
 }
+
+const SP_LAB=["過去","現在","未来"];
+const SP_LEAD_SOFT=["これまでの流れ・土台になっていること","いまの状況・いちばん大きなテーマ","このまま進んだとき、見えてきそうなこと"];
+const SP_LEAD_SER=["背景 ── 現在に至るまでに働いてきたもの","現状 ── いま問われていること","展望 ── このまま進んだ場合に開ける方向(確定した未来ではありません)"];
+function introSpreadHTML(sr){
+  return sr
+  ?`<p class="eyebrow">三枚引き</p>
+<h2 class="intro-title">過去・現在・未来</h2>
+<p class="intro-body">問いを一つ決めてから引いてください。三枚は「背景・現状・展望」として並び、一つの流れとして読みます。先を言い当てるものではなく、状況を整理するための型です。</p>`
+  :`<p class="eyebrow">三枚引き</p>
+<h2 class="intro-title">過去・現在・未来</h2>
+<p class="intro-body">三枚のカードを、左から「過去」「現在」「未来」として読みます。知りたいことを思い浮かべて、引いてみてください。</p>`;
+}
+function spreadHTML(cards,sr){
+  const lead=sr?SP_LEAD_SER:SP_LEAD_SOFT;
+  const blk=cards.map((x,k)=>{
+    const c=CARDS[x.i],rev=!!x.rev,kws=rev?c.kr:c.ku;
+    return `<section class="sp-blk"><p class="sp-pos">${SP_LAB[k]}</p><p class="sp-lead">${lead[k]}</p>
+<p class="pos ${rev?"is-rev":""}"><span aria-hidden="true">${rev?"▽":"△"}</span>${rev?"逆位置":"正位置"}</p>
+<h3 class="sp-name"><span class="cn-jp">${c.jp}</span><span class="cn-en">${ROMAN[c.i]} ・ ${c.en}</span></h3>
+${sr?`<p class="core">${rev?c.cr:c.cu}</p>`:`<p class="hl">${rev?c.hr:c.hl}</p>`}
+<ul class="kw">${kws.map(k=>`<li>${k}</li>`).join("")}</ul>
+<p class="mean">${sr?(rev?c.dr:c.dp):(rev?c.rev:c.up)}</p></section>`;
+  }).join("");
+  const a=CARDS[cards[0].i],b=CARDS[cards[1].i],c=CARDS[cards[2].i],f=cards[2];
+  const flow=`過去は「${a.jp}」、現在は「${b.jp}」、そして「${c.jp}」へ。`;
+  const tail=sr
+  ?`<section class="sec"><h3>全体として</h3><p>${flow}三枚は因果を断定するものではなく、一つの物語として並べたものです。</p></section>
+<section class="sec q"><h3>問いかけ</h3><p>${f.rev?c.qr:c.qu}</p></section>`
+  :`<section class="sec"><h3>三枚をならべて</h3><p>${flow}一つの流れとして眺めてみてください。気になった一枚から読み返しても大丈夫です。</p></section>`;
+  return `<p class="eyebrow">三枚引き</p><h2 class="intro-title">過去・現在・未来</h2>${blk}${tail}`;
+}
 /*DATA-END*/
 
 (function(){
@@ -688,71 +761,198 @@ function detailHTML(c,sr){
     try{st=JSON.parse(localStorage.getItem(KEY))}catch(e){}
     if(!st&&mem)st=mem;
     const d=today();
-    if(!st||st.d!==d||typeof st.n!=="number")st={d:d,n:0,last:null};
+    if(!st||st.d!==d||typeof st.n!=="number")st={d:d,n:0,last:null,lastS:null};
     return st;
   }
   function save(st){mem=st;try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){}}
   /*LIMIT-END*/
 
-  let busy=false,shown=false,drawId=0,cur=null,serious=false;
+  const API="https://muddy-forest-46d0.yosiken0126.workers.dev";
+  const stage=$("#stage"),spreadEl=$("#spread"),nOne=$("#nOne"),nThree=$("#nThree");
+  const salonLink=$("#salonLink"),salon=$("#salon"),salonForm=$("#salonForm"),codeIn=$("#codeIn"),salonMsg=$("#salonMsg"),codeOff=$("#codeOff");
+  const lsGet=k=>{try{return localStorage.getItem(k)}catch(e){return null}};
+  const lsSet=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
+  const lsDel=k=>{try{localStorage.removeItem(k)}catch(e){}};
+  let memCid=null,memCode=null,memSrv=null;
+  function cid(){
+    let v=lsGet("arcana.cid")||memCid;
+    if(!v||!/^[A-Za-z0-9-]{16,64}$/.test(v)){
+      try{v=crypto.randomUUID()}catch(e){
+        v="";for(let k=0;k<32;k++)v+="0123456789abcdef"[rnd(16)];
+      }
+      lsSet("arcana.cid",v);
+    }
+    memCid=v;return v;
+  }
+  const getCode=()=>lsGet("arcana.code")||memCode||"";
+  function setCode(v){memCode=v;lsSet("arcana.code",v)}
+  function clearCode(){memCode=null;lsDel("arcana.code");memSrv=null;lsDel("arcana.srv")}
+  function loadSrv(){
+    let s=null;try{s=JSON.parse(lsGet("arcana.srv"))}catch(e){}
+    if(!s&&memSrv)s=memSrv;
+    return s&&s.d===today()&&typeof s.left==="number"?s:null;
+  }
+  function saveSrv(left){memSrv={d:today(),left:left};lsSet("arcana.srv",JSON.stringify(memSrv))}
+
+  let busy=false,drawId=0,serious=false,N=1,cur1=null,cur3=null;
   const remainEl=$("#remain"),modeSoft=$("#modeSoft"),modeSerious=$("#modeSerious"),foot=$("#foot");
   const FOOT_SOFT="占いは気軽な楽しみとしてお使いください。結果は一つの見方にすぎません。";
   const FOOT_SERIOUS="占いは判断の代わりではなく、考えるための材料です。医療・法律・お金など重要な決断は、専門家に相談してください。";
+
+  /* three-card spread DOM */
+  spreadEl.innerHTML=SP_LAB.map((p,k)=>`<div class="sc"><p class="sc-lab">${p}</p><div class="card-wrap" data-k="${k}"><div class="shadow"></div><div class="shake"><div class="card-inner"><div class="face back">${BACK.replace(/sgh/g,"sgh"+k)}</div><div class="face front"></div></div></div></div></div>`).join("");
+  const sw=Array.from(spreadEl.querySelectorAll(".card-wrap"));
+  function fillSpread(cards){cards.forEach((c,k)=>{sw[k].querySelector(".front").innerHTML=cardSVG(c.i);sw[k].classList.toggle("is-rev",!!c.rev)})}
+  function fillSingle(c){front.innerHTML=cardSVG(c.i);wrap.classList.toggle("is-rev",!!c.rev)}
+  function closeCards(n){(n===3?sw:[wrap]).forEach(e=>e.classList.remove("is-open"))}
+  async function openCards(n,animate){
+    if(n===3){for(let k=0;k<3;k++){if(animate)await sleep(RM?20:380);sw[k].classList.add("is-open")}}
+    else wrap.classList.add("is-open");
+  }
+  const curOf=n=>n===3?cur3:cur1;
+  function readingNow(){
+    if(N===3)return cur3?spreadHTML(cur3.cards,serious):introSpreadHTML(serious);
+    return cur1?readingHTML(CARDS[cur1.i],cur1.rev,serious):introHTML(serious);
+  }
   function applyMode(m,persist){
     serious=(m==="serious");
     if(serious)document.documentElement.setAttribute("data-mode","serious");else document.documentElement.removeAttribute("data-mode");
     modeSoft.setAttribute("aria-pressed",String(!serious));modeSerious.setAttribute("aria-pressed",String(serious));
     foot.textContent=serious?FOOT_SERIOUS:FOOT_SOFT;
-    if(!busy)reading.innerHTML=cur?readingHTML(CARDS[cur.i],cur.rev,serious):introHTML(serious);
-    if(persist){try{localStorage.setItem("arcana.mode",serious?"serious":"soft")}catch(e){}}
+    if(!busy)reading.innerHTML=readingNow();
+    if(persist)lsSet("arcana.mode",serious?"serious":"soft");
   }
   modeSoft.addEventListener("click",()=>applyMode("soft",true));
   modeSerious.addEventListener("click",()=>applyMode("serious",true));
-  function updateUI(){
-    const st=load(),left=LIMIT-st.n,free=isFree();
-    if(free){remainEl.textContent="制限なしで引けます"}
-    else if(left>0){remainEl.textContent="今日はあと"+left+"回引けます"}
-    else{remainEl.textContent="今日の"+LIMIT+"回を引きました。また明日どうぞ"}
-    const stop=!free&&left<=0;
-    drawBtn.textContent=stop?"今日はここまで":(shown?"もう一度引く":"カードを引く");
-    drawBtn.disabled=stop||busy;
+
+  function status(){
+    if(getCode()){
+      const s=loadSrv();
+      if(s){const stop=s.left<=0;return{stop:stop,text:stop?"サロン版:今日の分は引き終えました。また明日どうぞ":"サロン版:今日はあと"+s.left+"回引けます"}}
+      return{stop:false,text:"サロン版:1日の回数はサーバーで管理されます"};
+    }
+    const st=load(),left=LIMIT-st.n;
+    if(isFree())return{stop:false,text:"制限なしで引けます"};
+    if(left>0)return{stop:false,text:"今日はあと"+left+"回引けます(3枚引きも1回です)"};
+    return{stop:true,text:"今日の"+LIMIT+"回を引きました。また明日どうぞ"};
   }
+  function updateUI(notice){
+    const s=status();
+    remainEl.textContent=notice||s.text;
+    drawBtn.textContent=s.stop?"今日はここまで":(curOf(N)?"もう一度引く":(N===3?"3枚を引く":"カードを引く"));
+    drawBtn.disabled=s.stop||busy;
+    nOne.disabled=nThree.disabled=busy;
+    codeOff.hidden=!getCode();
+  }
+  function setN(n,persist){
+    N=n===3?3:1;
+    nOne.setAttribute("aria-pressed",String(N===1));nThree.setAttribute("aria-pressed",String(N===3));
+    stage.classList.toggle("is-spread",N===3);
+    wrap.hidden=N===3;spreadEl.hidden=N!==3;
+    if(persist)lsSet("arcana.n",String(N));
+    if(!busy)reading.innerHTML=readingNow();
+    updateUI();
+  }
+  nOne.addEventListener("click",()=>{if(!busy)setN(1,true)});
+  nThree.addEventListener("click",()=>{if(!busy)setN(3,true)});
+
+  function localDraw(n){
+    const allow=revToggle.checked;
+    const pool=Array.from({length:22},(_,k)=>k),cards=[];
+    for(let k=0;k<(n===3?3:1);k++){const i=pool.splice(rnd(pool.length),1)[0];cards.push({i:i,rev:allow&&rnd(2)===1})}
+    return cards;
+  }
+  async function getDraw(n){
+    const code=getCode();
+    if(code){
+      try{
+        const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),8000);
+        const r=await fetch(API+"/api/draw",{method:"POST",headers:{"content-type":"application/json"},signal:ctl.signal,
+          body:JSON.stringify({code:code,clientId:cid(),allowRev:revToggle.checked,spread:n===3?3:1})});
+        clearTimeout(tm);
+        let j=null;try{j=await r.json()}catch(e){}
+        if(r.ok&&j&&j.ok){
+          const cards=Array.isArray(j.cards)?j.cards:[{i:j.i,rev:j.rev}];
+          const okc=cards.length===(n===3?3:1)&&cards.every(c=>Number.isInteger(c.i)&&c.i>=0&&c.i<22);
+          if(okc)return{ok:true,cards:cards.map(c=>({i:c.i,rev:!!c.rev})),via:"server",remaining:j.remaining};
+        } else if(j&&(j.error==="bad_code"||j.error==="limit"||j.error==="busy"||j.error==="locked")){
+          return{ok:false,error:j.error};
+        }
+      }catch(e){}
+      const st=load();
+      if(!isFree()&&st.n>=LIMIT)return{ok:false,error:"limit_local"};
+      return{ok:true,cards:localDraw(n),via:"fallback"};
+    }
+    return{ok:true,cards:localDraw(n),via:"local"};
+  }
+  const MSG={
+    bad_code:"合言葉が違います。もう一度ご確認ください。",
+    busy:"本日はたいへん混み合っています。明日またお試しください。",
+    locked:"入力の誤りが続いたため、本日はこの回線から使えません。"
+  };
   async function draw(){
     if(busy)return;
-    const st0=load();
-    if(!isFree()&&st0.n>=LIMIT){updateUI();return}
-    busy=true;drawBtn.disabled=true;const myId=++drawId;
-    if(shown){reading.classList.add("is-hidden");wrap.classList.remove("is-open");await sleep(RM?50:850)}
-    wrap.classList.add("shuffling");await sleep(RM?50:1000);wrap.classList.remove("shuffling");
-    const i=rnd(22),rev=revToggle.checked&&rnd(2)===1;
-    const st=load();st.n+=1;st.last={i:i,rev:rev};save(st);
-    front.innerHTML=cardSVG(i);
-    wrap.classList.toggle("is-rev",rev);
-    wrap.classList.add("is-open");shown=true;
+    if(status().stop){updateUI();return}
+    busy=true;drawBtn.disabled=true;nOne.disabled=nThree.disabled=true;const myId=++drawId;const n=N;
+    const req=getDraw(n);
+    if(curOf(n)){reading.classList.add("is-hidden");closeCards(n);await sleep(RM?50:850)}
+    const els=n===3?sw:[wrap];
+    els.forEach(e=>e.classList.add("shuffling"));await sleep(RM?50:1000);els.forEach(e=>e.classList.remove("shuffling"));
+    const r=await req;
+    if(!r.ok){
+      busy=false;
+      if(r.error==="bad_code"){clearCode();salon.hidden=false;salonLink.setAttribute("aria-expanded","true");salonMsg.textContent=MSG.bad_code}
+      if(r.error==="limit"){saveSrv(0)}
+      if(curOf(n)){const c=curOf(n);if(n===3)fillSpread(c.cards);else fillSingle(c);openCards(n,false)}
+      reading.classList.remove("is-hidden");
+      updateUI(MSG[r.error]);
+      return;
+    }
+    const st=load();
+    if(r.via==="server"){saveSrv(typeof r.remaining==="number"?r.remaining:0)}
+    else st.n+=1;
+    let notice="";
+    if(r.via==="fallback")notice="サーバーにつながらなかったため、この端末の回数で引きました";
+    if(n===3){cur3={cards:r.cards};st.lastS=r.cards;fillSpread(r.cards)}
+    else{cur1=r.cards[0];st.last=r.cards[0];fillSingle(r.cards[0])}
+    save(st);
+    await openCards(n,true);
     await sleep(RM?50:850);
-    cur={i:i,rev:rev};
-    reading.innerHTML=readingHTML(CARDS[i],rev,serious);
+    reading.innerHTML=readingNow();
     reading.classList.remove("is-hidden");
-    busy=false;updateUI();
+    busy=false;updateUI(notice);
     setTimeout(()=>{
       if(myId===drawId&&reading.getBoundingClientRect().top>window.innerHeight*.6){reading.scrollIntoView({behavior:RM?"auto":"smooth",block:"start"})}
     },RM?0:1600);
   }
-  window.addEventListener("hashchange",updateUI);
+  window.addEventListener("hashchange",()=>updateUI());
   (function restore(){
     const st=load();
-    if(st.last&&CARDS[st.last.i]){
-      front.innerHTML=cardSVG(st.last.i);
-      wrap.classList.toggle("is-rev",!!st.last.rev);
-      wrap.classList.add("is-open");shown=true;
-      cur={i:st.last.i,rev:!!st.last.rev};
+    if(st.last&&CARDS[st.last.i]){cur1={i:st.last.i,rev:!!st.last.rev};fillSingle(cur1);wrap.classList.add("is-open")}
+    if(Array.isArray(st.lastS)&&st.lastS.length===3&&st.lastS.every(c=>c&&CARDS[c.i])){
+      cur3={cards:st.lastS.map(c=>({i:c.i,rev:!!c.rev}))};fillSpread(cur3.cards);sw.forEach(e=>e.classList.add("is-open"));
     }
-    let m="soft";try{if(localStorage.getItem("arcana.mode")==="serious")m="serious"}catch(e){}
-    applyMode(m,false);
-    updateUI();
+    applyMode(lsGet("arcana.mode")==="serious"?"serious":"soft",false);
+    setN(lsGet("arcana.n")==="3"?3:1,false);
   })();
   drawBtn.addEventListener("click",draw);
   wrap.addEventListener("click",draw);
+  spreadEl.addEventListener("click",e=>{if(e.target.closest(".card-wrap"))draw()});
+
+  /* salon code panel */
+  salonLink.addEventListener("click",()=>{
+    salon.hidden=!salon.hidden;salonLink.setAttribute("aria-expanded",String(!salon.hidden));
+    if(!salon.hidden){salonMsg.textContent=getCode()?"合言葉が設定されています。":"";codeIn.focus()}
+  });
+  salonForm.addEventListener("submit",e=>{
+    e.preventDefault();
+    const v=codeIn.value.trim();
+    if(!v){salonMsg.textContent="合言葉を入力してください。";return}
+    setCode(v);codeIn.value="";memSrv=null;lsDel("arcana.srv");
+    salonMsg.textContent="設定しました。カードを引くと、サーバーで回数を数えます。";
+    updateUI();
+  });
+  codeOff.addEventListener("click",()=>{clearCode();salonMsg.textContent="解除しました。";updateUI()});
 
   /* tabs */
   const tabDraw=$("#tabDraw"),tabIndex=$("#tabIndex"),viewDraw=$("#viewDraw"),viewIndex=$("#viewIndex");
