@@ -31,6 +31,8 @@
   --back:#23265a;
   --back-line:#6a70b5;
   --back-frame:#e8e4f2;
+  --rev:#bd3627;
+  --on-seal:#f6f4fa;
   --f-display:'Shippori Mincho B1','Hiragino Mincho ProN','Yu Mincho',serif;
   --f-body:'Zen Kaku Gothic New','Hiragino Sans','Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif;
   --f-latin:'Cormorant Garamond','Iowan Old Style',Georgia,serif;
@@ -38,15 +40,24 @@
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
     --bg:#0f1026;--surface:#191b3f;--fg:#ecebf7;--muted:#a3a6cf;--line:#30336a;
-    --accent:#f27a68;--on-accent:#1d0f1c;--shadow:rgba(0,0,0,.55);color-scheme:dark;
+    --accent:#f27a68;--on-accent:#1d0f1c;--shadow:rgba(0,0,0,.55);--rev:#f27a68;color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
   --bg:#0f1026;--surface:#191b3f;--fg:#ecebf7;--muted:#a3a6cf;--line:#30336a;
-  --accent:#f27a68;--on-accent:#1d0f1c;--shadow:rgba(0,0,0,.55);color-scheme:dark;
+  --accent:#f27a68;--on-accent:#1d0f1c;--shadow:rgba(0,0,0,.55);--rev:#f27a68;color-scheme:dark;
+}
+/* Serious mode: night ink, gold line work, Mincho for running text. Always dark, whatever the OS theme. */
+html:root[data-mode="serious"]{
+  --bg:#0b0a1a;--surface:#151330;--fg:#e8e2d0;--muted:#aaa48f;--line:#2e2b54;
+  --accent:#d9b86a;--on-accent:#17120a;--rev:#e39a86;--shadow:rgba(0,0,0,.72);
+  --ink:#d9b86a;--paper:#16142e;--shu:#b9493d;
+  --back:#0d0c1f;--back-line:#7d6f3f;--back-frame:#d9b86a;--on-seal:#f1e6c4;
+  --f-body:var(--f-display);color-scheme:dark;
 }
 body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:17px;line-height:1.75;-webkit-text-size-adjust:100%}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 .app{max-width:1120px;margin:0 auto;padding-block:12px 48px;padding-inline:max(16px,3vw)}
 
 /* header */
@@ -117,8 +128,8 @@ button:focus-visible,.switch input:focus-visible{outline:3px solid var(--accent)
 .bk-frame{fill:none;stroke:var(--back-frame);stroke-width:1}
 .bk-frame2{fill:none;stroke:var(--back-line);stroke-width:.8}
 .bk-seal{fill:var(--shu)}
-.bk-ring{fill:none;stroke:var(--paper);stroke-width:.9}
-.bk-kan{fill:var(--paper);font-family:var(--f-display);font-weight:700}
+.bk-ring{fill:none;stroke:var(--on-seal);stroke-width:.9}
+.bk-kan{fill:var(--on-seal);font-family:var(--f-display);font-weight:700}
 
 /* controls */
 .actions{display:flex;flex-direction:column;align-items:center;gap:14px}
@@ -141,7 +152,7 @@ button:focus-visible,.switch input:focus-visible{outline:3px solid var(--accent)
 .cn-jp{display:block;font-size:2.2rem;letter-spacing:.08em}
 .cn-en{display:block;font-family:var(--f-latin);font-style:italic;font-weight:500;font-size:1.25rem;color:var(--muted);letter-spacing:.06em;margin-top:2px}
 .pos{display:inline-flex;align-items:center;gap:8px;margin:0 0 12px;padding:3px 16px;border:1.5px solid var(--fg);border-radius:999px;font-size:.9rem;font-weight:700;letter-spacing:.16em}
-.pos.is-rev{border-color:var(--accent);color:var(--accent)}
+.pos.is-rev{border-color:var(--rev);color:var(--rev)}
 .kw{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 0;padding:0;list-style:none}
 .kw li{padding:1px 12px;border:1px solid var(--line);border-radius:6px;background:var(--surface);font-size:.92rem}
 .hl{margin-top:16px;font-family:var(--f-display);font-weight:700;font-size:1.5rem;line-height:1.55;text-wrap:balance}
@@ -157,6 +168,12 @@ details.other+details.other{margin-top:10px}
 .sheet .hl{font-size:1.2rem;margin-top:8px}
 
 /* index */
+.ctrl{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.core{margin:14px 0 0;font-family:var(--f-display);font-weight:500;font-size:1.3rem;line-height:1.7;text-wrap:balance}
+.sec{margin-top:22px;padding-top:18px;border-top:1px solid var(--line)}
+.sec h3{margin:0 0 6px;font-size:.8rem;letter-spacing:.2em;color:var(--muted);font-weight:700}
+.sec p{font-size:1.02rem;line-height:2}
+.sec.q p{font-family:var(--f-display);font-size:1.12rem;line-height:1.85}
 .lead{margin:0 0 8px;color:var(--muted)}
 .grid{list-style:none;margin:0;padding:12px 0 0;display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:30px 20px}
 .tile{display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;padding:0;border:0;background:none;color:inherit;font:inherit;cursor:pointer;text-align:center;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
@@ -173,7 +190,7 @@ details.other+details.other{margin-top:10px}
 .sheet-text{min-width:0;padding-right:40px}
 .two{display:grid;gap:16px;margin-top:18px}
 .two section{padding-top:14px;border-top:1px solid var(--line)}
-.two h3.r{color:var(--accent)}
+.two h3.r{color:var(--rev)}
 .two .kw{margin-top:8px}
 .two .m{margin-top:10px}
 .close{position:absolute;top:10px;right:10px;width:48px;height:48px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--fg);font-size:1.5rem;line-height:1;cursor:pointer;touch-action:manipulation}
@@ -189,10 +206,16 @@ details.other+details.other{margin-top:10px}
 <div class="app">
   <header class="top">
     <div class="brand"><h1>大アルカナ占い</h1><span class="sub">Major Arcana</span></div>
-    <nav class="tabs" aria-label="表示の切り替え">
-      <button type="button" id="tabDraw" aria-pressed="true">引く</button>
-      <button type="button" id="tabIndex" aria-pressed="false">カード一覧</button>
-    </nav>
+    <div class="ctrl">
+      <div class="tabs" role="group" aria-label="読み解きの雰囲気">
+        <button type="button" id="modeSoft" aria-pressed="true">やさしい</button>
+        <button type="button" id="modeSerious" aria-pressed="false">本格</button>
+      </div>
+      <nav class="tabs" aria-label="表示の切り替え">
+        <button type="button" id="tabDraw" aria-pressed="true">引く</button>
+        <button type="button" id="tabIndex" aria-pressed="false">カード一覧</button>
+      </nav>
+    </div>
   </header>
 
   <main>
@@ -232,7 +255,7 @@ details.other+details.other{margin-top:10px}
     </section>
   </main>
 
-  <p class="foot">占いは気軽な楽しみとしてお使いください。結果は一つの見方にすぎません。</p>
+  <p class="foot" id="foot">占いは気軽な楽しみとしてお使いください。結果は一つの見方にすぎません。</p>
 </div>
 
 <div class="sheet" id="sheet" hidden role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
@@ -464,6 +487,119 @@ const CARDS=[
  rev:"あと一歩のところで、仕上がりきっていません。細部の詰めや、終わらせる決断をしてみましょう。",
  scene:"月桂樹の輪の中で踊る人物。四隅には四つの生き物が囲んでいる。"}
 ];
+const DEEP=[
+{cu:"まだ形のない可能性の前に立っている。",cr:"軽さが、無防備さに変わりかけている。",
+ dp:"愚者は番号を持たず、序列の外にいる。経験も計画もないまま踏み出す姿は、先入観のなさという資質を示す。問いは、整うのを待つか、整わないまま進むかにある。進むなら、崖の縁にいる事実を知ったうえで進みたい。",
+ dr:"勢いが先行し、足元の確認が抜け落ちている。自由を求めること自体は誤りではないが、その自由が責任の回避になっていないか。軽率さの代償は、たいてい後になって現れる。立ち止まる勇気を持ちたい。",
+ sy:"白い太陽は純粋さを、小さな荷物は少ない執着を、足元の崖は見えていない危険を表す。寄り添う犬は、本能や、引き止める忠告の象徴とも読まれる。",
+ qu:"何を持たずに、何を持って出発するのか。",qr:"今の自由は、何から逃げるためのものか。"},
+{cu:"必要なものは、すでに手元にある。",cr:"力はあるが、向ける先が定まっていない。",
+ dp:"机上に杖・杯・剣・金貨が並ぶ。意志を現実の形にするための道具が、すべてそろっている状態である。足りないのは材料ではなく、始めるという決断だ。一方の手は天を、もう一方は地を指し、理想と現実をつなぐ役割を示している。",
+ dr:"才能や手段はあるのに、使い方がぶれている。見せかけや話術で、足りたことにしていないか。道具を揃えることと、使いこなすことは別である。誰に何を示したいのか、動機を点検する時期だ。",
+ sy:"頭上の無限の印は尽きない可能性を、赤い衣と白い衣は情熱と純粋さを表す。足元の花は、意志が形になって育つ過程を示す。",
+ qu:"今ある手持ちで、最初に形にするものは何か。",qr:"手段が先で、目的が置き去りになっていないか。"},
+{cu:"答えは、語られる前から内側にある。",cr:"沈黙が、閉ざされた不安に変わっている。",
+ dp:"二本の柱の間で、巻物を抱えて座る。巻物は半分しか見えず、知は秘められている。この札は、行動より観察を、結論より待つことを促す。直感は急かすと現れない。外へ答えを求める前に、すでに気づいていることに耳を傾けたい。",
+ dr:"内なる声を、疑いや考えすぎで遠ざけている。あるいは、隠していることが重荷になっている。感じていることを言葉にしないまま抱え込むと、判断は鈍る。信頼できる相手に、一部でも話すことが助けになる。",
+ sy:"黒と白の柱は対立する二つの原理を、足元の三日月は満ち欠けを、背後の幕は見えない領域との境界を表す。",
+ qu:"急いで答えを出さずに、何が見えてくるのを待つのか。",qr:"感じているのに、認めないでいることは何か。"},
+{cu:"手をかけたものが、豊かに実る時期である。",cr:"与えることと、甘やかすことの境が曖昧になっている。",
+ dp:"麦畑に囲まれて座る女帝は、育てる力と受け入れる力を示す。仕事でも関係でも、時間をかけて世話をしたものが形になる。成果を急ぐ札ではなく、感覚や心地よさを信頼する札である。自分自身を満たすことも、実りの条件に含まれる。",
+ dr:"与えすぎて消耗しているか、心地よさに寄りかかって停滞している。世話の焼きすぎは、相手の成長を妨げることがある。豊かさが浪費や怠惰に傾いていないか、振り返りたい。",
+ sy:"星の冠は天との結びつきを、ヴィーナスの紋章の盾は愛と創造を、実る麦は時間をかけた成長を表す。",
+ qu:"今、何を育て、何に手をかけているのか。",qr:"与えることで、何を手放せずにいるのか。"},
+{cu:"秩序を築き、責任を引き受ける段階にある。",cr:"支配が、硬直と独善に傾いている。",
+ dp:"石の玉座と険しい山は、動かない土台を表す。感情ではなく、規則と計画によって物事を支える力である。決断を下し、結果に責任を持つ姿勢が求められる。守るべきものがあるなら、その枠組みを明確にするとよい。",
+ dr:"強さが頑なさに変わり、人の意見を受け付けなくなっている。管理すること自体が目的になっていないか。権威に頼るか、反発するか、どちらの極にも偏りがある。柔軟さは弱さではない。",
+ sy:"牡羊の頭の装飾は意志と先頭に立つ力を、赤い衣は行動力を、灰色の山々は不変の領域を表す。手にしたアンクは生命の象徴である。",
+ qu:"何を守るために、どの秩序を整えるのか。",qr:"誰の声を、聞かなくなっているか。"},
+{cu:"受け継がれた知恵に、学ぶ時である。",cr:"型に縛られるか、型を捨てることに縛られている。",
+ dp:"二人の弟子の前で祝福を与える姿は、伝統と共同体の知を示す。ここでは独創よりも、確立された方法や信頼できる指導者から学ぶことに価値がある。基礎を固めることが、のちの自由な応用を可能にする。",
+ dr:"「こうあるべき」に縛られているか、反対にすべてを拒むことで自由を装っている。形式が中身を失っていないか、また反発が目的化していないかを見直したい。自分に合う型は、探して選ぶものである。",
+ sy:"二本の交差した鍵は、顕在と潜在の二つの知を開くことを、三重の冠と杖は精神・知・物質の三つの領域を表す。",
+ qu:"誰から、何を学び受け継ぐのか。",qr:"従っているもの、逆らっているものは、本当に自分の選択か。"},
+{cu:"選択が、価値観の根を問うている。",cr:"迷いのなかで、選ぶことが先延ばしにされている。",
+ dp:"この札の核心は、恋愛そのものより、何を選び、何に誠実であるかにある。二人の背後の木は、それぞれの本性や欲を表す。心から惹かれるものを選ぶことは、同時に他の選択肢を手放すことでもある。選択には責任が伴う。",
+ dr:"気持ちが揺れ、優先順位が定まらない。誘惑や他者の期待に流されているか、決断を避けるために選択肢を増やしていないか。調和が崩れた状態では、まず自分が何を大切にしたいかを確かめる必要がある。",
+ sy:"頭上の天使は選択を見守る高次の視点を、知恵の樹と生命の樹は二人それぞれの課題を表す。裸は、偽りのない状態を示す。",
+ qu:"選ぶことで、何を手放す覚悟があるか。",qr:"決められないのは、本当に情報が足りないからか。"},
+{cu:"相反する力を束ね、前へ進む。",cr:"勢いが、方向を見失いかけている。",
+ dp:"黒白二頭のスフィンクスは、引き合う二つの力を表す。それを手綱ではなく、意志で制御する。勝利とは相手を倒すことではなく、内側の対立をまとめあげて進むことである。目標が明確なとき、この札は強い推進力となる。",
+ dr:"焦りや競争心で動いていないか。手綱が緩み、力がばらばらに進んでいる。速度を上げる前に、行き先の確認が必要である。勝ちたいのか、進みたいのか、動機を整理するとよい。",
+ sy:"星の天蓋は天の導きを、車輪のない戦車は物理ではなく精神の移動を、肩の月は感情の制御を表すとされる。",
+ qu:"どこへ向かうために、何を抑え、何を推し進めるのか。",qr:"急いでいる本当の理由は何か。"},
+{cu:"強さとは、抑えつけることではなく、受け止めることである。",cr:"自信が揺らぎ、恐れが先に立っている。",
+ dp:"女性は獅子を力で押さえず、やさしく口に触れて静める。本能や感情を否定せず、理解して導く強さを示す。忍耐と思いやりは、時間をかけて衝動を味方に変える。派手さはないが、最も確かな力である。",
+ dr:"自信を失い、感情に飲まれやすくなっている。あるいは、強がりが内側の不安を覆い隠している。自分に厳しすぎる姿勢は、かえって力を弱める。小さな成功を思い出し、回復の足がかりにしたい。",
+ sy:"頭上の無限の印は精神の持続を、白い衣は純粋さを、獅子は未加工の本能を表す。花の冠は、調和した力を示す。",
+ qu:"抑え込んでいる衝動と、どう向き合うのか。",qr:"強がることで、何を見ないようにしているか。"},
+{cu:"外の喧騒から離れ、内側の灯りを頼りに進む。",cr:"孤独が、孤立に変わりかけている。",
+ dp:"山頂でランタンを掲げる老人は、導かれる者ではなく、自らの探求で光を得た者である。今は他人の評価や助言より、自分の内なる基準を確かめる時期である。孤独は欠如ではなく、深く考えるための条件になりうる。",
+ dr:"一人でいることが、他者との断絶になっていないか。内省が堂々巡りになり、視野が狭まっている。得た気づきを分かち合うことで、灯りは広がる。閉じる時期と開く時期を見極めたい。",
+ sy:"ランタンの六芒星は天と地の結合を、杖は歩みを支える経験を、雪の山は到達した高みと静寂を表す。",
+ qu:"騒がしさを離れて、自分は何を確かめたいのか。",qr:"一人でいることは、守りか、逃避か。"},
+{cu:"巡りは止まらない。その流れの中で何を選ぶか。",cr:"流れが滞り、噛み合わない時期にある。",
+ dp:"輪は常に回り、上がるものはやがて下がり、下がるものは再び上がる。個人の努力を超えた巡り合わせが働く局面である。変化を恐れず、機会が来たときに動けるよう備えたい。同時に、中心にある不動の軸も意識するとよい。",
+ dr:"タイミングが合わず、努力が空回りしているように感じられる。ただし、停滞は永続しない。今は流れに逆らわず、準備と観察に徹する期間と捉えることもできる。他人や環境のせいにしすぎないことも大切である。",
+ sy:"四隅の四つの生き物は四元素と安定を、輪の文字は変化の法則を、周囲の蛇・ジャッカル・スフィンクスは昇降と不変を表す。",
+ qu:"変わる流れのなかで、変えずに守るものは何か。",qr:"待つべき時期か、動くべき時期か。"},
+{cu:"事実を量り、一貫した基準で判断する。",cr:"偏りと不公平が、判断を曇らせている。",
+ dp:"剣は明晰さを、天秤は均衡を表す。感情や損得ではなく、事実と原則にもとづく判断が求められる。行いには結果が伴うという、因果の札でもある。誠実に積み重ねたことは、正当に評価される。",
+ dr:"偏った見方や、自分に都合のよい解釈が入り込んでいる。あるいは、不公平な扱いを受けている可能性もある。結論を急がず、事実関係を整理し直すことが必要である。責任を引き受ける覚悟が問われている。",
+ sy:"天秤は釣り合いを、剣は両刃である判断の厳しさを、二本の柱の間の座は中立な立場を表す。",
+ qu:"感情と損得を除いたとき、事実は何を示すか。",qr:"自分の判断に、どんな偏りが入っているか。"},
+{cu:"動かないことで、見える角度が変わる。",cr:"意味を失った我慢が、停滞を長引かせている。",
+ dp:"逆さに吊られながら、表情は穏やかである。自ら選んだ停止と犠牲が、新しい視点をもたらす。成果を急がず、今は見方を反転させる時間である。失うように見えるものが、のちに別の価値を生むことがある。",
+ dr:"待っても何も変わらない我慢になっていないか。自己犠牲が習慣化し、誰のためにもなっていない可能性がある。耐えることと、手放すことは別の選択である。状況を変える決断が必要な時期でもある。",
+ sy:"頭の光輪は悟りを、組んだ足は内なる均衡を、生木のT字の枠は生命と十字の交点を表す。",
+ qu:"視点を変えたとき、何が見えてくるか。",qr:"この我慢は、何のためのものか。"},
+{cu:"終わりは、次の段階の入口である。",cr:"終わりを認められず、同じ場所にとどまっている。",
+ dp:"この札は、肉体の死を告げるものではない。ひとつの段階が終わり、別の段階へ移る必要を示す。白い旗の薔薇は純粋さを、昇る朝日は再生を表す。何かが終わることへの悲しみと、新しい始まりは、同時に存在する。",
+ dr:"手放すべきものにしがみつき、変化を避けている。終わらせない限り、次は始まらない。恐れの正体を見極めることが、前進の第一歩である。自然な終わりに抗うほど、消耗は大きくなる。",
+ sy:"骸骨の騎士は避けられない変化を、倒れた王と祈る人々はすべてが等しく変化の前にあることを、遠くの二本の塔の間の太陽は再生を表す。",
+ qu:"終わらせることで、何が次に始まるのか。",qr:"手放せない理由は、恐れか、愛着か。"},
+{cu:"異なるものを混ぜ、ちょうどよい均衡を探る。",cr:"均衡が崩れ、極端に傾いている。",
+ dp:"天使は二つの杯の間で水を移し続ける。急激な変化ではなく、少しずつ調整して整える営みを示す。対立するものを排除せず、調和させる姿勢が実を結ぶ。節度と継続が、静かに状況を安定させる。",
+ dr:"生活や関係のバランスが崩れ、やりすぎ、または怠りが目立つ。調整を怠って、極端な振れ幅で動いていないか。小さな修正を積み重ね、リズムを取り戻すことが先決である。",
+ sy:"片足は水に、片足は地にあり、意識と無意識の橋渡しを示す。背後の道は、長い歩みの先にある目標を表す。",
+ qu:"どこを足し、どこを抑えるのか。",qr:"偏りの原因は、どこにあるのか。"},
+{cu:"縛っているものは、自分の手でも外せる鎖である。",cr:"束縛から離れる力が、戻りつつある。",
+ dp:"鎖でつながれた男女の首輪は、実はゆるく、外すことができる。欲望、習慣、依存、恐れなど、自ら受け入れてきた束縛を示す。快楽や安心と引き換えに、何を差し出しているのかを見つめたい。気づくことが、解放の始まりである。",
+ dr:"束縛を断つきっかけが訪れている。依存や悪習、不健全な関係から離れる力が、少しずつ戻ってきている。ただし、急激に断ち切ろうとすると反動も起こりうる。支えを得ながら、段階的に進めたい。",
+ sy:"逆さの五芒星は物質への偏りを、悪魔の姿は未統合の本能を、台座につながる鎖は自らが選んだ依存を表す。",
+ qu:"手放せないでいるものは、何と引き換えか。",qr:"鎖を外した後、何を選ぶのか。"},
+{cu:"崩れるものは、土台を作り直す契機となる。",cr:"崩れを避けるほど、緊張が長引いている。",
+ dp:"雷が塔の冠を打ち、人々が落ちていく。築いたものが思い込みや虚構の上にあったとき、突然の崩壊が起こる。衝撃は大きいが、偽りの構造が崩れることで、本来の姿が見えてくる。失うものと残るものを、冷静に見極める時である。",
+ dr:"崩壊はすでに始まっているが、認めずに支えようとしている。あるいは、最悪の事態は避けられたが、課題は残っている。小さな綻びのうちに向き合えば、被害は小さくできる。変化に抵抗するほど、傷は深くなりうる。",
+ sy:"塔は人為的な構造と傲りを、雷は突然の啓示を、落ちる王冠は誤った権威の失墜を表す。炎の粒は22個で、大アルカナの数に対応するとも言われる。",
+ qu:"崩れた後に残る、本当に必要なものは何か。",qr:"見ないようにしている綻びは、どこにあるか。"},
+{cu:"嵐の後に、静かな希望が灯る。",cr:"希望が遠のき、気力が低下している。",
+ dp:"裸の女性が壺の水を、大地と池へ注ぐ。何も飾らない状態で、回復と癒しが進む。塔の衝撃を経たあとの、静かな再出発を示す。大きな成果を急がず、素直な願いを持ち続けることが、道を照らす。",
+ dr:"希望を見失い、理想と現実の落差に疲れている。高望みに押し潰されているか、期待すること自体を諦めかけている。遠い理想より、今日できる小さなことに目を戻す。回復には時間が必要である。",
+ sy:"八芒星は無限の導きを、七つの小さな星は内なる七つの中心を、二つの壺は意識と無意識に水を返す営みを表す。",
+ qu:"静けさのなかで、まだ信じられるものは何か。",qr:"失望の下に、まだ残っている願いは何か。"},
+{cu:"輪郭の曖昧な夜に、決めつけを避ける。",cr:"霧が晴れ、隠れていたものが見え始める。",
+ dp:"月光の下では、距離感も輪郭も曖昧になる。不安、思い込み、見えない恐れが膨らみやすい時期である。犬と狼が吠えるのは、飼い慣らされた理性と、野生の本能の揺らぎを表す。確かめられないことは、結論を急がず、夜明けを待つのが賢明である。",
+ dr:"不安の正体が、少しずつ見えてきている。曖昧だった状況が整理され、混乱が収まっていく。ただし、無理に急いで確かめようとすると、見誤ることもある。事実と想像を、丁寧に分けて整理したい。",
+ sy:"二つの塔は人為の境界を、ザリガニは無意識の底から浮かぶ原始的な衝動を、続く道は不確かな中でも進む歩みを表す。",
+ qu:"今感じている不安の、事実と想像はどこで分かれるか。",qr:"晴れてきた霧の向こうに、何が見えてきたか。"},
+{cu:"隠すもののない明るさが、全体を照らす。",cr:"明るさに陰りがあり、成果の現れが遅れている。",
+ dp:"幼子が白馬に乗り、旗を掲げる。複雑な計算のない、率直な喜びと成功を示す。努力が認められ、健やかさと活力が戻る時期である。素直に喜び、分かち合うことで、さらに良い流れが広がる。",
+ dr:"成功や好転は近いが、過信や楽観が先走っている。あるいは、雲がかかったように成果が遅れている。完全に失われたわけではなく、時間差の問題であることが多い。足元を確かめながら進めばよい。",
+ sy:"ひまわりは光に向かう成長を、壁は守られた庭を、赤い旗は生命力と行動を表す。子どもは、無垢で偽りのない状態を示す。",
+ qu:"素直に喜べるものを、まっすぐ受け取っているか。",qr:"楽観の裏で、見落としていることはないか。"},
+{cu:"呼びかけに応え、過去を超えて再び立ち上がる。",cr:"後悔と自己否定が、決断を遅らせている。",
+ dp:"天使のラッパを合図に、人々が棺から身を起こす。過去の経験を総括し、新しい段階へと応える時である。やり残したことへの決断、許し、再出発が主題となる。呼びかけは、すでに聞こえている。",
+ dr:"過去を悔い、自己否定が強まり、一歩が出ない。あるいは、呼びかけに気づかないふりをしている。完璧になってから動くのではなく、今の自分で決めることが必要である。許しは、他者より先に自分へ向けたい。",
+ sy:"ラッパは覚醒の知らせを、棺は終わった過去を、遠くの山は到達すべき高みを表す。十字の旗は、統合と再生の象徴である。",
+ qu:"呼ばれているものに、どう応えるのか。",qr:"自分を許すために、何が必要か。"},
+{cu:"ひとつの周期が、完成に至る。",cr:"完成の一歩手前で、最後の仕上げが残っている。",
+ dp:"月桂樹の輪の中で、人物は軽やかに舞う。愚者から始まった旅の終着であり、同時に次の周期の始まりでもある。努力が実り、全体が統合された状態を示す。達成を静かに認め、次の段階への準備を整えたい。",
+ dr:"あと一歩のところで、仕上げが完了していない。完成を恐れているか、終わらせることに抵抗がある場合もある。細部を詰め、区切りをつける決断が求められる。燃え尽きに注意し、休息も取りたい。",
+ sy:"四隅の四つの生き物は安定と全体性を、月桂樹の輪は勝利と循環を、二本の杖は対立する力の統合を表す。",
+ qu:"ここまでで得たものを、次にどう生かすのか。",qr:"終わらせられないのは、何を恐れているからか。"}
+];
+DEEP.forEach((d,i)=>Object.assign(CARDS[i],d));
 CARDS.forEach((c,i)=>{c.i=i});
 
 function cardSVG(i){
@@ -485,22 +621,48 @@ const BACK=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 340" aria-h
 <circle class="bk-seal" cx="100" cy="170" r="36"/><circle class="bk-ring" cx="100" cy="170" r="30"/>
 <text class="bk-kan" x="100" y="184" font-size="38" text-anchor="middle">占</text></svg>`;
 
-function readingHTML(c,rev){
+function introHTML(sr){
+  return sr
+  ?`<p class="eyebrow">はじめに</p>
+<h2 class="intro-title">一枚を引く</h2>
+<p class="intro-body">問いを一つ、言葉にしてから引いてください。答えを求めるためではなく、考える材料を得るために使います。</p>
+<div class="scene"><h3>大アルカナとは</h3><p>22枚の絵札で、愚者(0)から世界(21)へ至る一つの旅を描きます。各札は正位置と逆位置で、異なる側面を示します。</p></div>`
+  :`<p class="eyebrow">はじめに</p>
+<h2 class="intro-title">今日の一枚を引く</h2>
+<p class="intro-body">知りたいことを一つ思い浮かべて、カードにふれてください。「今日をどう過ごすか」のような漠然とした問いでも大丈夫です。</p>
+<div class="scene"><h3>大アルカナとは</h3><p>22枚の絵札です。0の愚者から21の世界まで、一人の旅人が歩む道のりを順に描いたものとして読まれます。</p></div>`;
+}
+function readingHTML(c,rev,sr){
   const kws=rev?c.kr:c.ku;
-  return `<p class="pos ${rev?"is-rev":""}"><span aria-hidden="true">${rev?"▽":"△"}</span>${rev?"逆位置":"正位置"}</p>
-<h2><span class="cn-jp">${c.jp}</span><span class="cn-en">${ROMAN[c.i]} ・ ${c.en}</span></h2>
+  const head=`<p class="pos ${rev?"is-rev":""}"><span aria-hidden="true">${rev?"▽":"△"}</span>${rev?"逆位置":"正位置"}</p>
+<h2><span class="cn-jp">${c.jp}</span><span class="cn-en">${ROMAN[c.i]} ・ ${c.en}</span></h2>`;
+  if(!sr)return head+`
 <p class="hl">${rev?c.hr:c.hl}</p>
 <ul class="kw">${kws.map(k=>`<li>${k}</li>`).join("")}</ul>
 <p class="mean">${rev?c.rev:c.up}</p>
 <details class="other"><summary>${rev?"正位置":"逆位置"}のときの意味</summary><p class="hl2">${rev?c.hl:c.hr}</p><p>${rev?c.up:c.rev}</p></details>
 <details class="other"><summary>絵柄の見かた</summary><p>${c.scene}</p></details>`;
+  return head+`
+<p class="core">${rev?c.cr:c.cu}</p>
+<ul class="kw">${kws.map(k=>`<li>${k}</li>`).join("")}</ul>
+<section class="sec"><h3>読み解き</h3><p>${rev?c.dr:c.dp}</p></section>
+<section class="sec"><h3>象徴</h3><p>${c.sy}</p></section>
+<section class="sec q"><h3>問いかけ</h3><p>${rev?c.qr:c.qu}</p></section>
+<details class="other"><summary>${rev?"正位置":"逆位置"}のときの読み</summary><p class="hl2">${rev?c.cu:c.cr}</p><p>${rev?c.dp:c.dr}</p></details>
+<details class="other"><summary>絵柄の描写</summary><p>${c.scene}</p></details>`;
 }
-function detailHTML(c){
+function detailHTML(c,sr){
   const li=a=>`<ul class="kw">${a.map(k=>`<li>${k}</li>`).join("")}</ul>`;
-  return `<p class="eyebrow">No. ${ROMAN[c.i]}</p>
-<h2 id="sheetTitle"><span class="cn-jp">${c.jp}</span><span class="cn-en">${c.en}</span></h2>
+  const top=`<p class="eyebrow">No. ${ROMAN[c.i]}</p>
+<h2 id="sheetTitle"><span class="cn-jp">${c.jp}</span><span class="cn-en">${c.en}</span></h2>`;
+  if(!sr)return top+`
 <div class="two"><section><h3>正位置</h3><p class="hl">${c.hl}</p>${li(c.ku)}<p class="m">${c.up}</p></section>
 <section><h3 class="r">逆位置</h3><p class="hl">${c.hr}</p>${li(c.kr)}<p class="m">${c.rev}</p></section></div>
+<div class="scene"><h3>絵柄</h3><p>${c.scene}</p></div>`;
+  return top+`
+<div class="two"><section><h3>正位置</h3><p class="core">${c.cu}</p>${li(c.ku)}<p class="m">${c.dp}</p></section>
+<section><h3 class="r">逆位置</h3><p class="core">${c.cr}</p>${li(c.kr)}<p class="m">${c.dr}</p></section></div>
+<div class="scene"><h3>象徴</h3><p>${c.sy}</p></div>
 <div class="scene"><h3>絵柄</h3><p>${c.scene}</p></div>`;
 }
 /*DATA-END*/
@@ -532,8 +694,20 @@ function detailHTML(c){
   function save(st){mem=st;try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){}}
   /*LIMIT-END*/
 
-  let busy=false,shown=false,drawId=0;
-  const remainEl=$("#remain");
+  let busy=false,shown=false,drawId=0,cur=null,serious=false;
+  const remainEl=$("#remain"),modeSoft=$("#modeSoft"),modeSerious=$("#modeSerious"),foot=$("#foot");
+  const FOOT_SOFT="占いは気軽な楽しみとしてお使いください。結果は一つの見方にすぎません。";
+  const FOOT_SERIOUS="占いは判断の代わりではなく、考えるための材料です。医療・法律・お金など重要な決断は、専門家に相談してください。";
+  function applyMode(m,persist){
+    serious=(m==="serious");
+    if(serious)document.documentElement.setAttribute("data-mode","serious");else document.documentElement.removeAttribute("data-mode");
+    modeSoft.setAttribute("aria-pressed",String(!serious));modeSerious.setAttribute("aria-pressed",String(serious));
+    foot.textContent=serious?FOOT_SERIOUS:FOOT_SOFT;
+    if(!busy)reading.innerHTML=cur?readingHTML(CARDS[cur.i],cur.rev,serious):introHTML(serious);
+    if(persist){try{localStorage.setItem("arcana.mode",serious?"serious":"soft")}catch(e){}}
+  }
+  modeSoft.addEventListener("click",()=>applyMode("soft",true));
+  modeSerious.addEventListener("click",()=>applyMode("serious",true));
   function updateUI(){
     const st=load(),left=LIMIT-st.n,free=isFree();
     if(free){remainEl.textContent="制限なしで引けます"}
@@ -556,7 +730,8 @@ function detailHTML(c){
     wrap.classList.toggle("is-rev",rev);
     wrap.classList.add("is-open");shown=true;
     await sleep(RM?50:850);
-    reading.innerHTML=readingHTML(CARDS[i],rev);
+    cur={i:i,rev:rev};
+    reading.innerHTML=readingHTML(CARDS[i],rev,serious);
     reading.classList.remove("is-hidden");
     busy=false;updateUI();
     setTimeout(()=>{
@@ -570,8 +745,10 @@ function detailHTML(c){
       front.innerHTML=cardSVG(st.last.i);
       wrap.classList.toggle("is-rev",!!st.last.rev);
       wrap.classList.add("is-open");shown=true;
-      reading.innerHTML=readingHTML(CARDS[st.last.i],!!st.last.rev);
+      cur={i:st.last.i,rev:!!st.last.rev};
     }
+    let m="soft";try{if(localStorage.getItem("arcana.mode")==="serious")m="serious"}catch(e){}
+    applyMode(m,false);
     updateUI();
   })();
   drawBtn.addEventListener("click",draw);
@@ -597,7 +774,7 @@ function detailHTML(c){
   function openSheet(i,tile){
     lastTile=tile;
     $("#sheetCard").innerHTML=cardSVG(i);
-    $("#sheetText").innerHTML=detailHTML(CARDS[i]);
+    $("#sheetText").innerHTML=detailHTML(CARDS[i],serious);
     sheet.hidden=false;document.documentElement.style.overflow="hidden";
     sheetClose.focus();
   }
