@@ -199,6 +199,13 @@ details.other+details.other{margin-top:10px}
   .sheet-card{width:min(210px,58vw)}
   .sheet-text{padding-right:0;width:100%}
 }
+.linkbtn{background:none;border:0;padding:8px 10px;min-height:44px;color:var(--muted);font:inherit;font-size:.85rem;text-decoration:underline;cursor:pointer;touch-action:manipulation}
+.salon{max-width:420px;margin:12px auto 0;padding:16px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--fg);font-size:.9rem;text-align:left}
+.salon p{margin:0 0 10px}
+.salon form{display:flex;gap:8px}
+.salon input[type=text]{flex:1;min-width:0;min-height:44px;padding:0 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);font:inherit;font-size:16px}
+.salon .btn{min-height:44px;padding:0 20px;font-size:.95rem}
+.salon .msg{margin:10px 0 0;min-height:1.4em;color:var(--muted)}
 .foot{margin:44px 0 0;color:var(--muted);font-size:.8rem;text-align:center}
 </style>
 </head>
@@ -256,6 +263,13 @@ details.other+details.other{margin-top:10px}
   </main>
 
   <p class="foot" id="foot">占いは気軽な楽しみとしてお使いください。結果は一つの見方にすぎません。</p>
+  <div class="foot" style="margin-top:8px"><button type="button" class="linkbtn" id="secretLink" aria-expanded="false" aria-controls="secret">合言葉をお持ちの方</button>
+    <div class="salon" id="secret" hidden>
+      <p>合言葉を入れると、特別版の大アルカナに進めます。</p>
+      <form id="secretForm" autocomplete="off"><input type="text" id="secretIn" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="合言葉" placeholder="合言葉"><button type="submit" class="btn primary" id="secretGo">進む</button></form>
+      <p class="msg" id="secretMsg" aria-live="polite"></p>
+    </div>
+  </div>
 </div>
 
 <div class="sheet" id="sheet" hidden role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
@@ -753,6 +767,32 @@ function detailHTML(c,sr){
   })();
   drawBtn.addEventListener("click",draw);
   wrap.addEventListener("click",draw);
+
+  /* secret word -> salon page (checked on the server; the word is never in this file) */
+  (function(){
+    const API="https://muddy-forest-46d0.yosiken0126.workers.dev";
+    const link=$("#secretLink"),box=$("#secret"),form=$("#secretForm"),inp=$("#secretIn"),msg=$("#secretMsg"),go=$("#secretGo");
+    link.addEventListener("click",()=>{box.hidden=!box.hidden;link.setAttribute("aria-expanded",String(!box.hidden));if(!box.hidden)inp.focus()});
+    form.addEventListener("submit",async e=>{
+      e.preventDefault();
+      const v=inp.value.trim();
+      if(!v){msg.textContent="合言葉を入力してください。";return}
+      go.disabled=true;msg.textContent="確認しています…";
+      try{
+        const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),8000);
+        const r=await fetch(API+"/api/check",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({code:v}),signal:ctl.signal});
+        clearTimeout(tm);
+        let j=null;try{j=await r.json()}catch(e2){}
+        if(r.ok&&j&&j.ok){
+          try{localStorage.setItem("arcana.code",v);localStorage.removeItem("arcana.srv");if(j.shop)localStorage.setItem("arcana.shop","1");else localStorage.removeItem("arcana.shop")}catch(e3){}
+          msg.textContent="ようこそ。移動します…";
+          location.href="salon.html";return;
+        }
+        msg.textContent=j&&j.error==="locked"?"入力の誤りが続いたため、本日は使えません。":"合言葉が違います。";
+      }catch(e4){msg.textContent="つながりませんでした。しばらくしてからお試しください。"}
+      go.disabled=false;
+    });
+  })();
 
   /* tabs */
   const tabDraw=$("#tabDraw"),tabIndex=$("#tabIndex"),viewDraw=$("#viewDraw"),viewIndex=$("#viewIndex");

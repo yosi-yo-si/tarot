@@ -142,6 +142,32 @@ export default {
       );
     }
 
+    if (url.pathname === "/api/check" && request.method === "POST") {
+      if (!env.ACCESS_CODE || !env.COUNTS) {
+        return json({ ok: false, error: "not_configured" }, 500, headers);
+      }
+      let body;
+      try {
+        body = await request.json();
+        if (!body || typeof body !== "object") throw new Error("bad");
+      } catch (e) {
+        return json({ ok: false, error: "bad_request" }, 400, headers);
+      }
+      const code = String(body.code || "");
+      const day = jstDay();
+      const ip = request.headers.get("cf-connecting-ip") || "unknown";
+      const failKey = `f:${day}:${ip}`;
+      if ((await getCount(env.COUNTS, failKey)) >= MAX_FAILS_PER_IP) {
+        return json({ ok: false, error: "locked" }, 429, headers);
+      }
+      const isShop = !!env.SHOP_CODE && safeEqual(code, env.SHOP_CODE);
+      if (!code || (!isShop && !safeEqual(code, env.ACCESS_CODE))) {
+        await bump(env.COUNTS, failKey);
+        return json({ ok: false, error: "bad_code" }, 401, headers);
+      }
+      return json({ ok: true, shop: isShop }, 200, headers);
+    }
+
     if (url.pathname === "/api/draw" && request.method === "POST") {
       if (!env.ACCESS_CODE || !env.COUNTS) {
         return json({ ok: false, error: "not_configured" }, 500, headers);
