@@ -125,6 +125,7 @@ button:focus-visible,.switch input:focus-visible{outline:3px solid var(--accent)
 .btn{min-height:54px;padding:0 36px;border-radius:999px;border:1.5px solid transparent;font:inherit;font-size:1.05rem;font-weight:700;letter-spacing:.1em;cursor:pointer;touch-action:manipulation}
 .btn.primary{background:var(--accent);color:var(--on-accent)}
 .btn:disabled{opacity:.55;cursor:default}
+.remain{margin:0;min-height:1.6em;text-align:center;color:var(--muted);font-size:.92rem}
 .switch{display:inline-flex;align-items:center;gap:12px;min-height:44px;color:var(--muted);font-size:.95rem;cursor:pointer}
 .switch input{appearance:none;-webkit-appearance:none;width:46px;height:28px;border-radius:999px;background:var(--line);position:relative;margin:0;transition:background .2s;cursor:pointer;flex:none}
 .switch input::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--surface);box-shadow:0 1px 3px var(--shadow);transition:transform .2s}
@@ -210,6 +211,7 @@ details.other+details.other{margin-top:10px}
           <div class="actions">
             <button type="button" class="btn primary" id="drawBtn">カードを引く</button>
             <label class="switch"><input type="checkbox" id="revToggle" checked><span>逆位置も使う</span></label>
+            <p class="remain" id="remain" aria-live="polite"></p>
           </div>
         </div>
         <div class="reading" id="reading" aria-live="polite">
@@ -514,24 +516,64 @@ function detailHTML(c){
   try{if(localStorage.getItem("arcana.rev")==="0")revToggle.checked=false}catch(e){}
   revToggle.addEventListener("change",()=>{try{localStorage.setItem("arcana.rev",revToggle.checked?"1":"0")}catch(e){}});
 
+  /*LIMIT-START*/
+  const LIMIT=3,KEY="arcana.daily";
+  const today=()=>new Date().toLocaleDateString("sv-SE",{timeZone:"Asia/Tokyo"});
+  const isFree=()=>location.hash==="#free";
+  let mem=null;
+  function load(){
+    let st=null;
+    try{st=JSON.parse(localStorage.getItem(KEY))}catch(e){}
+    if(!st&&mem)st=mem;
+    const d=today();
+    if(!st||st.d!==d||typeof st.n!=="number")st={d:d,n:0,last:null};
+    return st;
+  }
+  function save(st){mem=st;try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){}}
+  /*LIMIT-END*/
+
   let busy=false,shown=false,drawId=0;
+  const remainEl=$("#remain");
+  function updateUI(){
+    const st=load(),left=LIMIT-st.n,free=isFree();
+    if(free){remainEl.textContent="制限なしで引けます"}
+    else if(left>0){remainEl.textContent="今日はあと"+left+"回引けます"}
+    else{remainEl.textContent="今日の"+LIMIT+"回を引きました。また明日どうぞ"}
+    const stop=!free&&left<=0;
+    drawBtn.textContent=stop?"今日はここまで":(shown?"もう一度引く":"カードを引く");
+    drawBtn.disabled=stop||busy;
+  }
   async function draw(){
     if(busy)return;
+    const st0=load();
+    if(!isFree()&&st0.n>=LIMIT){updateUI();return}
     busy=true;drawBtn.disabled=true;const myId=++drawId;
     if(shown){reading.classList.add("is-hidden");wrap.classList.remove("is-open");await sleep(RM?50:850)}
     wrap.classList.add("shuffling");await sleep(RM?50:1000);wrap.classList.remove("shuffling");
     const i=rnd(22),rev=revToggle.checked&&rnd(2)===1;
+    const st=load();st.n+=1;st.last={i:i,rev:rev};save(st);
     front.innerHTML=cardSVG(i);
     wrap.classList.toggle("is-rev",rev);
     wrap.classList.add("is-open");shown=true;
     await sleep(RM?50:850);
     reading.innerHTML=readingHTML(CARDS[i],rev);
     reading.classList.remove("is-hidden");
-    drawBtn.textContent="もう一度引く";drawBtn.disabled=false;busy=false;
+    busy=false;updateUI();
     setTimeout(()=>{
       if(myId===drawId&&reading.getBoundingClientRect().top>window.innerHeight*.6){reading.scrollIntoView({behavior:RM?"auto":"smooth",block:"start"})}
     },RM?0:1600);
   }
+  window.addEventListener("hashchange",updateUI);
+  (function restore(){
+    const st=load();
+    if(st.last&&CARDS[st.last.i]){
+      front.innerHTML=cardSVG(st.last.i);
+      wrap.classList.toggle("is-rev",!!st.last.rev);
+      wrap.classList.add("is-open");shown=true;
+      reading.innerHTML=readingHTML(CARDS[st.last.i],!!st.last.rev);
+    }
+    updateUI();
+  })();
   drawBtn.addEventListener("click",draw);
   wrap.addEventListener("click",draw);
 
