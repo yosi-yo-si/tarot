@@ -231,6 +231,9 @@ details.other+details.other{margin-top:10px}
 .qbox label{font-size:.9rem;color:var(--muted)}
 .qbox textarea{width:100%;min-height:92px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--fg);font:inherit;font-size:16px;line-height:1.6;resize:vertical}
 .qbox .qnote{margin:0;font-size:.8rem;color:var(--muted)}
+.qbox .help a,.ai .help a{white-space:nowrap}
+.qbox .help a{color:inherit;font-weight:700}
+.ai .help a{color:inherit;font-weight:700}
 .qbox .qcount{margin:0;font-size:.8rem;color:var(--muted);text-align:right}
 .ai{padding-bottom:6px}
 .ai p{margin:0 0 1em;line-height:1.95}
@@ -274,12 +277,14 @@ details.other+details.other{margin-top:10px}
               <label for="qIn">相談したいこと(任意)</label>
               <textarea id="qIn" maxlength="300" rows="3" placeholder="例:仕事を変えるか迷っています" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
               <p class="qcount" id="qCount" aria-live="off">0 / 300</p>
-              <p class="qnote">入力した文章はAIに送られます。このアプリには保存しません。個人が特定される情報は書かないでください。</p>
+              <p class="qnote">入力した文章は、読み解きのためにAnthropic社(米国)のAIに送られます。このアプリには保存しません(Anthropic社では最大30日間保管されます)。氏名や病名など、個人が特定される情報は書かないでください。</p>
+              <p class="qnote help">つらい気持ちが続くときは、占いより先に相談してください。よりそいホットライン <a href="tel:0120279338">0120-279-338</a>/#いのちSOS <a href="tel:0120061338">0120-061-338</a>(どちらも24時間・無料)</p>
             </div>
             <div class="tabs sm" role="group" aria-label="引く枚数">
               <button type="button" id="nOne" aria-pressed="true">1枚</button>
               <button type="button" id="nThree" aria-pressed="false">3枚(過去・現在・未来)</button>
             </div>
+            <button type="button" class="linkbtn" id="nextBtn" hidden>次の方へ(画面をリセット)</button>
             <button type="button" class="btn primary" id="drawBtn">カードを引く</button>
             <label class="switch"><input type="checkbox" id="revToggle" checked><span>逆位置も使う</span></label>
             <p class="remain" id="remain" aria-live="polite"></p>
@@ -737,7 +742,7 @@ function introSpreadHTML(sr){
 function escH(t){return String(t).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function aiHTML(t){
   const ps=String(t).split(/\n{2,}|\n/).map(x=>x.trim()).filter(Boolean).map(x=>`<p>${escH(x)}</p>`).join("");
-  return `<section class="ai"><p class="eyebrow">AIの読み解き</p>${ps}<p class="ai-note">AIが書いた文章です。一つの見方として、参考にしてください。この画面を閉じると消えます。</p></section>`;
+  return `<section class="ai"><p class="eyebrow">AIの読み解き</p>${ps}<p class="ai-note">AIが書いた文章です。一つの見方として、参考にしてください。この画面を閉じると消えます。</p><p class="ai-note help">つらい気持ちが続くときは、よりそいホットライン <a href="tel:0120279338">0120-279-338</a>/#いのちSOS <a href="tel:0120061338">0120-061-338</a>(24時間・無料)へ。</p></section>`;
 }
 function spreadHTML(cards,sr){
   const lead=sr?SP_LEAD_SER:SP_LEAD_SOFT;
@@ -807,8 +812,11 @@ ${sr?`<p class="core">${rev?c.cr:c.cu}</p>`:`<p class="hl">${rev?c.hr:c.hl}</p>`
     memCid=v;return v;
   }
   const getCode=()=>lsGet("arcana.code")||memCode||"";
-  function setCode(v){memCode=v;lsSet("arcana.code",v)}
-  function clearCode(){memCode=null;lsDel("arcana.code");memSrv=null;lsDel("arcana.srv")}
+  function setCode(v){memCode=v;lsSet("arcana.code",v);memShop=false;lsDel("arcana.shop")}
+  let memShop=false;
+  const isShop=()=>!!getCode()&&(lsGet("arcana.shop")==="1"||memShop);
+  function setShop(v){memShop=v;if(v)lsSet("arcana.shop","1");else lsDel("arcana.shop")}
+  function clearCode(){memCode=null;lsDel("arcana.code");memSrv=null;lsDel("arcana.srv");setShop(false)}
   function loadSrv(){
     let s=null;try{s=JSON.parse(lsGet("arcana.srv"))}catch(e){}
     if(!s&&memSrv)s=memSrv;
@@ -848,6 +856,7 @@ ${sr?`<p class="core">${rev?c.cr:c.cu}</p>`:`<p class="hl">${rev?c.hr:c.hl}</p>`
   modeSerious.addEventListener("click",()=>applyMode("serious",true));
 
   function status(){
+    if(getCode()&&isShop())return{stop:false,text:"店頭用:回数の制限はありません"};
     if(getCode()){
       const s=loadSrv();
       if(s){const stop=s.left<=0;return{stop:stop,text:stop?"サロン版:今日の分は引き終えました。また明日どうぞ":"サロン版:今日はあと"+s.left+"回引けます"}}
@@ -866,6 +875,7 @@ ${sr?`<p class="core">${rev?c.cr:c.cu}</p>`:`<p class="hl">${rev?c.hr:c.hl}</p>`
     nOne.disabled=nThree.disabled=busy;
     codeOff.hidden=!getCode();
     qBox.hidden=!getCode();
+    $("#nextBtn").hidden=!(isShop()&&(cur1||cur3))||busy;
   }
   function setN(n,persist){
     N=n===3?3:1;
@@ -897,7 +907,7 @@ ${sr?`<p class="core">${rev?c.cr:c.cu}</p>`:`<p class="hl">${rev?c.hr:c.hl}</p>`
         if(r.ok&&j&&j.ok){
           const cards=Array.isArray(j.cards)?j.cards:[{i:j.i,rev:j.rev}];
           const okc=cards.length===(n===3?3:1)&&cards.every(c=>Number.isInteger(c.i)&&c.i>=0&&c.i<22);
-          if(okc)return{ok:true,cards:cards.map(c=>({i:c.i,rev:!!c.rev})),via:"server",remaining:j.remaining,ai:j.ai,reading:(typeof j.reading==="string"&&j.reading)?j.reading:null};
+          if(okc)return{ok:true,cards:cards.map(c=>({i:c.i,rev:!!c.rev})),via:"server",shop:j.shop===true,remaining:j.remaining,ai:j.ai,reading:(typeof j.reading==="string"&&j.reading)?j.reading:null};
         } else if(j&&(j.error==="bad_code"||j.error==="limit"||j.error==="busy"||j.error==="locked")){
           return{ok:false,error:j.error};
         }
@@ -934,7 +944,7 @@ ${sr?`<p class="core">${rev?c.cr:c.cu}</p>`:`<p class="hl">${rev?c.hr:c.hl}</p>`
       return;
     }
     const st=load();
-    if(r.via==="server"){saveSrv(typeof r.remaining==="number"?r.remaining:0)}
+    if(r.via==="server"){setShop(!!r.shop);if(!r.shop)saveSrv(typeof r.remaining==="number"?r.remaining:0)}
     else st.n+=1;
     let notice="";
     if(r.via==="fallback")notice="サーバーにつながらなかったため、この端末の回数で引きました";
@@ -945,7 +955,7 @@ ${sr?`<p class="core">${rev?c.cr:c.cu}</p>`:`<p class="hl">${rev?c.hr:c.hl}</p>`
     const aiText=(r.via==="server"&&r.reading)?r.reading:null;
     if(n===3){cur3={cards:r.cards,ai:aiText};st.lastS=r.cards;fillSpread(r.cards)}
     else{cur1=Object.assign({},r.cards[0],{ai:aiText});st.last=r.cards[0];fillSingle(r.cards[0])}
-    save(st);
+    if(isShop()){const keep=load();keep.last=null;keep.lastS=null;save(keep)}else save(st);
     await openCards(n,true);
     await sleep(RM?50:850);
     reading.innerHTML=readingNow();
@@ -968,6 +978,16 @@ ${sr?`<p class="core">${rev?c.cr:c.cu}</p>`:`<p class="hl">${rev?c.hr:c.hl}</p>`
   drawBtn.addEventListener("click",draw);
   wrap.addEventListener("click",draw);
   spreadEl.addEventListener("click",e=>{if(e.target.closest(".card-wrap"))draw()});
+
+  /* shop (salon iPad): clear for the next customer */
+  $("#nextBtn").addEventListener("click",()=>{
+    if(busy)return;
+    cur1=null;cur3=null;closeCards(1);closeCards(3);
+    qIn.value="";qCount.textContent="0 / 300";
+    const st=load();st.last=null;st.lastS=null;save(st);
+    reading.innerHTML=readingNow();updateUI();
+    window.scrollTo({top:0,behavior:RM?"auto":"smooth"});
+  });
 
   /* salon code panel */
   salonLink.addEventListener("click",()=>{

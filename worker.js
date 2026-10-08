@@ -148,14 +148,15 @@ export default {
       if ((await getCount(env.COUNTS, failKey)) >= MAX_FAILS_PER_IP) {
         return json({ ok: false, error: "locked" }, 429, headers);
       }
-      if (!safeEqual(code, env.ACCESS_CODE)) {
+      const isShop = !!env.SHOP_CODE && safeEqual(code, env.SHOP_CODE);
+      if (!isShop && !safeEqual(code, env.ACCESS_CODE)) {
         await bump(env.COUNTS, failKey);
         return json({ ok: false, error: "bad_code" }, 401, headers);
       }
 
       const userKey = `u:${day}:${clientId}`;
-      const used = await getCount(env.COUNTS, userKey);
-      if (used >= limit) {
+      const used = isShop ? 0 : await getCount(env.COUNTS, userKey);
+      if (!isShop && used >= limit) {
         return json({ ok: false, error: "limit", remaining: 0 }, 429, headers);
       }
       const globalKey = `g:${day}`;
@@ -163,7 +164,7 @@ export default {
         return json({ ok: false, error: "busy" }, 429, headers);
       }
 
-      await bump(env.COUNTS, userKey);
+      if (!isShop) await bump(env.COUNTS, userKey);
       await bump(env.COUNTS, globalKey);
       const allowRev = body.allowRev !== false;
       const count = body.spread === 3 ? 3 : 1;
@@ -187,7 +188,8 @@ export default {
           cards,
           ai: extra.ai,
           reading: extra.reading,
-          remaining: Math.max(0, limit - used - 1),
+          shop: isShop,
+          remaining: isShop ? null : Math.max(0, limit - used - 1),
         },
         200,
         headers
