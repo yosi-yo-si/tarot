@@ -285,6 +285,10 @@ details.other+details.other{margin-top:10px}
   .is-waiting .aura,.is-waiting .shake{animation:none}
   .ai .rise{animation:none}
 }
+
+.backwrap{margin-top:30px;padding-top:22px;border-top:1px solid var(--line);display:flex;justify-content:center}
+.btn.ghost{background:transparent;color:var(--fg);border-color:var(--line)}
+.again{margin:0}
 .foot{margin:44px 0 0;color:var(--muted);font-size:.8rem;text-align:center}
 </style>
 </head>
@@ -334,6 +338,7 @@ details.other+details.other{margin-top:10px}
               <button type="button" id="nOne" aria-pressed="true">1枚</button>
               <button type="button" id="nThree" aria-pressed="false">3枚(過去・現在・未来)</button>
             </div>
+            <button type="button" class="linkbtn again" id="againBtn" hidden>今日の結果をもう一度見る</button>
             <button type="button" class="linkbtn" id="nextBtn" hidden>次の方へ(画面をリセット)</button>
             <button type="button" class="btn primary" id="drawBtn">カードを引く</button>
             <label class="switch"><input type="checkbox" id="revToggle" checked><span>逆位置も使う</span></label>
@@ -932,7 +937,7 @@ ${sr?`<p class="core">${rev?c.cr:c.cu}</p>`:`<p class="hl">${rev?c.hr:c.hl}</p>`
   const introTop=$("#introTop"),viewDrawEl=$("#viewDraw");
   function paintReading(){
     const intro=!curOf(N),html=readingNow();
-    reading.innerHTML=html;reading.classList.toggle("is-intro",intro);
+    reading.innerHTML=html+(intro?"":`<div class="backwrap"><button type="button" class="btn ghost" data-act="home">はじめに戻る</button></div>`);reading.classList.toggle("is-intro",intro);
     introTop.innerHTML=intro?html:"";introTop.hidden=!intro;
   }
   function readingNow(){
@@ -976,6 +981,7 @@ ${sr?`<p class="core">${rev?c.cr:c.cu}</p>`:`<p class="hl">${rev?c.hr:c.hl}</p>`
     nOne.disabled=nThree.disabled=busy;
     codeOff.hidden=!getCode();
     qBox.hidden=!isShop();
+    const sv=savedOf(N);$("#againBtn").hidden=!(sv&&!curOf(N)&&!isShop())||busy;
     $("#aiTeaser").hidden=!(getCode()&&!isShop());
     $("#nextBtn").hidden=!(isShop()&&(cur1||cur3))||busy;
   }
@@ -1072,12 +1078,32 @@ ${sr?`<p class="core">${rev?c.cr:c.cu}</p>`:`<p class="hl">${rev?c.hr:c.hl}</p>`
     },RM?0:1600);
   }
   window.addEventListener("hashchange",()=>updateUI());
-  (function restore(){
+  function savedOf(n){
     const st=load();
-    if(st.last&&CARDS[st.last.i]){cur1={i:st.last.i,rev:!!st.last.rev};fillSingle(cur1);wrap.classList.add("is-open")}
-    if(Array.isArray(st.lastS)&&st.lastS.length===3&&st.lastS.every(c=>c&&CARDS[c.i])){
-      cur3={cards:st.lastS.map(c=>({i:c.i,rev:!!c.rev}))};fillSpread(cur3.cards);sw.forEach(e=>e.classList.add("is-open"));
-    }
+    if(n===3)return Array.isArray(st.lastS)&&st.lastS.length===3&&st.lastS.every(c=>c&&CARDS[c.i])?{cards:st.lastS.map(c=>({i:c.i,rev:!!c.rev}))}:null;
+    return st.last&&CARDS[st.last.i]?{i:st.last.i,rev:!!st.last.rev}:null;
+  }
+  function goHome(clearSaved){
+    if(busy)return;
+    cur1=null;cur3=null;closeCards(1);closeCards(3);
+    qIn.value="";qCount.textContent="0 / 300";
+    if(clearSaved){const st=load();st.last=null;st.lastS=null;save(st)}
+    paintReading();updateUI();
+    window.scrollTo({top:0,behavior:RM?"auto":"smooth"});
+  }
+  $("#againBtn").addEventListener("click",()=>{
+    if(busy)return;const sv=savedOf(N);if(!sv)return;
+    if(N===3){cur3=sv;fillSpread(sv.cards)}else{cur1=sv;fillSingle(sv)}
+    openCards(N,false);paintReading();updateUI();
+    setTimeout(()=>reading.scrollIntoView({behavior:RM?"auto":"smooth",block:"start"}),RM?0:300);
+  });
+  reading.addEventListener("click",e=>{const b=e.target.closest("[data-act=home]");if(b)goHome(isShop())});
+  /* salon iPad: go back to the first screen after 5 minutes without touches */
+  let idleT=null;
+  function bumpIdle(){clearTimeout(idleT);idleT=setTimeout(()=>{if(isShop()&&(cur1||cur3)&&!busy)goHome(true)},5*60*1000)}
+  ["pointerdown","keydown","scroll"].forEach(ev=>window.addEventListener(ev,bumpIdle,{passive:true}));bumpIdle();
+  (function restore(){
+    /* always start from the first screen; today's result can be reopened with againBtn */
     applyMode(lsGet("arcana.mode")==="serious"?"serious":"soft",false);
     setN(lsGet("arcana.n")==="3"?3:1,false);
   })();
@@ -1086,14 +1112,7 @@ ${sr?`<p class="core">${rev?c.cr:c.cu}</p>`:`<p class="hl">${rev?c.hr:c.hl}</p>`
   spreadEl.addEventListener("click",e=>{if(e.target.closest(".card-wrap"))draw()});
 
   /* shop (salon iPad): clear for the next customer */
-  $("#nextBtn").addEventListener("click",()=>{
-    if(busy)return;
-    cur1=null;cur3=null;closeCards(1);closeCards(3);
-    qIn.value="";qCount.textContent="0 / 300";
-    const st=load();st.last=null;st.lastS=null;save(st);
-    paintReading();updateUI();
-    window.scrollTo({top:0,behavior:RM?"auto":"smooth"});
-  });
+  $("#nextBtn").addEventListener("click",()=>goHome(true));
 
   /* salon code panel */
   salonLink.addEventListener("click",()=>{
