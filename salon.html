@@ -253,6 +253,38 @@ details.other+details.other{margin-top:10px}
 @media (max-width:899px){.reading.is-intro{display:none}}
 @media (min-width:900px){#viewDraw:not(.is-spread) .intro-top{display:none}}
 .stage.is-spread .reading.is-intro{display:none}
+
+/* motion: flip light, waiting aura, AI text rise */
+:root{--glow:#f6d98c}
+.card-wrap .fx{position:absolute;inset:0;pointer-events:none;z-index:3}
+.burst{position:absolute;left:50%;top:50%;width:0;height:0}
+.burst i{position:absolute;left:-4px;top:-4px;width:8px;height:8px;border-radius:50%;background:var(--glow);box-shadow:0 0 10px 2px var(--glow);opacity:0;animation:burst .95s cubic-bezier(.2,.7,.3,1) forwards;animation-delay:var(--dl,0s)}
+.burst i:nth-child(3n){width:5px;height:5px;left:-2.5px;top:-2.5px}
+@keyframes burst{0%{opacity:0;transform:rotate(var(--a)) translateY(0) scale(.4)}15%{opacity:1}100%{opacity:0;transform:rotate(var(--a)) translateY(calc(var(--r) * -1)) scale(1)}}
+.sweep{position:absolute;inset:0;overflow:hidden;border-radius:5% / 2.9%}
+.sweep::before{content:"";position:absolute;top:-20%;bottom:-20%;left:-60%;width:45%;background:linear-gradient(100deg,transparent,rgba(255,250,230,.75),transparent);transform:skewX(-12deg);animation:sweep .9s ease-out forwards}
+@keyframes sweep{to{left:120%}}
+.aura{position:absolute;inset:-14%;pointer-events:none;z-index:-2;border-radius:50%;background:radial-gradient(closest-side,color-mix(in srgb,var(--glow) 55%,transparent),transparent);opacity:0;transition:opacity .6s}
+.is-waiting .aura{opacity:1;animation:aura 2.4s ease-in-out infinite}
+@keyframes aura{0%,100%{transform:scale(.92);opacity:.55}50%{transform:scale(1.06);opacity:1}}
+.orbit{position:absolute;inset:-6%;pointer-events:none;z-index:4;opacity:0;transition:opacity .6s}
+.is-waiting .orbit{opacity:1;animation:orbit 6s linear infinite}
+.orbit i{position:absolute;width:7px;height:7px;border-radius:50%;background:var(--glow);box-shadow:0 0 8px 2px var(--glow)}
+.orbit i:nth-child(1){left:50%;top:0}.orbit i:nth-child(2){left:100%;top:60%}.orbit i:nth-child(3){left:6%;top:88%}
+.orbit i:nth-child(2),.orbit i:nth-child(3){width:5px;height:5px;animation:twinkle 1.6s ease-in-out infinite}
+@keyframes orbit{to{transform:rotate(360deg)}}
+@keyframes twinkle{50%{opacity:.25}}
+.is-waiting .shake{animation:breathe 2.4s ease-in-out infinite}
+@keyframes breathe{50%{transform:translateY(-4px)}}
+.waitmsg{margin:0;min-height:1.6em;text-align:center;font-family:var(--f-display);color:var(--accent);letter-spacing:.12em;transition:opacity .5s}
+.waitmsg.fade{opacity:0}
+.ai .rise{animation:rise .8s ease both;animation-delay:calc(var(--d,0) * 220ms)}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){
+  .burst,.sweep,.orbit{display:none}
+  .is-waiting .aura,.is-waiting .shake{animation:none}
+  .ai .rise{animation:none}
+}
 .foot{margin:44px 0 0;color:var(--muted);font-size:.8rem;text-align:center}
 </style>
 </head>
@@ -278,6 +310,7 @@ details.other+details.other{margin-top:10px}
       <div class="stage" id="stage">
         <div class="deck">
           <div class="card-wrap" id="card" aria-hidden="true">
+            <div class="aura"></div><div class="orbit"><i></i><i></i><i></i></div>
             <div class="shadow"></div>
             <div class="shake">
               <div class="card-inner">
@@ -287,6 +320,7 @@ details.other+details.other{margin-top:10px}
             </div>
           </div>
           <div class="spread" id="spread" hidden></div>
+          <p class="waitmsg" id="waitMsg" aria-hidden="true" hidden></p>
           <div class="actions">
             <div class="qbox" id="qBox" hidden>
               <label for="qIn">相談したいこと(任意)</label>
@@ -765,14 +799,15 @@ function introSpreadHTML(sr){
 }
 function escH(t){return String(t).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function aiInline(t){return escH(t).replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>").replace(/\*\*/g,"")}
-function aiHTML(t){
+function aiHTML(t,anim){
   const blocks=String(t).replace(/\r/g,"").split(/\n\s*\n/).map(b=>b.trim()).filter(Boolean);
+  let d=0;const rc=()=>anim?` class="rise" style="--d:${d++}"`:"";
   const out=blocks.map(b=>{
     const lines=b.split("\n").map(x=>x.trim().replace(/^(#{1,6}\s*|[-*・]\s+)/,"")).filter(Boolean);
     let h="",body=lines;
     const m=lines[0]&&lines[0].match(/^【([^】]{1,8})】\s*(.*)$/);
-    if(m){h=`<p class="ai-h">${escH(m[1])}</p>`;body=m[2]?[m[2]].concat(lines.slice(1)):lines.slice(1)}
-    return h+(body.length?`<p>${body.map(aiInline).join("<br>")}</p>`:"");
+    if(m){h=`<p class="ai-h${anim?" rise":""}"${anim?` style="--d:${d++}"`:""}>${escH(m[1])}</p>`;body=m[2]?[m[2]].concat(lines.slice(1)):lines.slice(1)}
+    return h+(body.length?`<p${rc()}>${body.map(aiInline).join("<br>")}</p>`:"");
   }).join("");
   return `<section class="ai"><p class="eyebrow">AIの読み解き</p>${out}<p class="ai-note">AIが書いた文章です。一つの見方として、参考にしてください。この画面を閉じると消えます。</p><p class="ai-note help">つらい気持ちが続くときは、よりそいホットライン <a href="tel:0120279338">0120-279-338</a>/#いのちSOS <a href="tel:0120061338">0120-061-338</a>(24時間・無料)へ。</p></section>`;
 }
@@ -863,14 +898,35 @@ ${sr?`<p class="core">${rev?c.cr:c.cu}</p>`:`<p class="hl">${rev?c.hr:c.hl}</p>`
   const FOOT_SERIOUS="占いは判断の代わりではなく、考えるための材料です。医療・法律・お金など重要な決断は、専門家に相談してください。";
 
   /* three-card spread DOM */
-  spreadEl.innerHTML=SP_LAB.map((p,k)=>`<div class="sc"><p class="sc-lab">${p}</p><div class="card-wrap" data-k="${k}"><div class="shadow"></div><div class="shake"><div class="card-inner"><div class="face back">${BACK.replace(/sgh/g,"sgh"+k)}</div><div class="face front"></div></div></div></div></div>`).join("");
+  spreadEl.innerHTML=SP_LAB.map((p,k)=>`<div class="sc"><p class="sc-lab">${p}</p><div class="card-wrap" data-k="${k}"><div class="aura"></div><div class="orbit"><i></i><i></i><i></i></div><div class="shadow"></div><div class="shake"><div class="card-inner"><div class="face back">${BACK.replace(/sgh/g,"sgh"+k)}</div><div class="face front"></div></div></div></div></div>`).join("");
   const sw=Array.from(spreadEl.querySelectorAll(".card-wrap"));
   function fillSpread(cards){cards.forEach((c,k)=>{sw[k].querySelector(".front").innerHTML=cardSVG(c.i);sw[k].classList.toggle("is-rev",!!c.rev)})}
   function fillSingle(c){front.innerHTML=cardSVG(c.i);wrap.classList.toggle("is-rev",!!c.rev)}
   function closeCards(n){(n===3?sw:[wrap]).forEach(e=>e.classList.remove("is-open"))}
+  /* flip light: sweep + gold particles */
+  function flash(el){
+    if(RM||!el)return;
+    const fx=document.createElement("div");fx.className="fx";fx.setAttribute("aria-hidden","true");
+    let ps="";for(let k=0;k<12;k++){ps+=`<i style="--a:${k*30+Math.round(Math.random()*14)}deg;--r:${Math.round(70+Math.random()*80)}px;--dl:${(Math.random()*.12).toFixed(2)}s"></i>`}
+    fx.innerHTML=`<div class="sweep"></div><div class="burst">${ps}</div>`;
+    el.appendChild(fx);setTimeout(()=>fx.remove(),1400);
+  }
   async function openCards(n,animate){
-    if(n===3){for(let k=0;k<3;k++){if(animate)await sleep(RM?20:380);sw[k].classList.add("is-open")}}
-    else wrap.classList.add("is-open");
+    if(n===3){for(let k=0;k<3;k++){if(animate)await sleep(RM?20:380);sw[k].classList.add("is-open");if(animate){const el=sw[k];setTimeout(()=>flash(el),420)}}}
+    else{wrap.classList.add("is-open");if(animate)setTimeout(()=>flash(wrap),420)}
+  }
+  /* waiting for the AI: aura + orbiting stars + rotating words */
+  const waitMsg=$("#waitMsg");let waitT=null;
+  const WAIT_WORDS=["星の配置を読んでいます","カードの声に耳を澄ませています","あなたへの言葉を選んでいます","もう少しだけ、お待ちください"];
+  function startWait(els){
+    els.forEach(e=>e.classList.add("is-waiting"));
+    let k=0;waitMsg.textContent=WAIT_WORDS[0];waitMsg.hidden=false;waitMsg.classList.remove("fade");
+    clearInterval(waitT);
+    waitT=setInterval(()=>{waitMsg.classList.add("fade");setTimeout(()=>{k=(k+1)%WAIT_WORDS.length;waitMsg.textContent=WAIT_WORDS[k];waitMsg.classList.remove("fade")},500)},2800);
+  }
+  function stopWait(){
+    clearInterval(waitT);waitT=null;waitMsg.hidden=true;waitMsg.textContent="";
+    [wrap].concat(sw).forEach(e=>e.classList.remove("is-waiting"));
   }
   const curOf=n=>n===3?cur3:cur1;
   const introTop=$("#introTop"),viewDrawEl=$("#viewDraw");
@@ -880,8 +936,9 @@ ${sr?`<p class="core">${rev?c.cr:c.cu}</p>`:`<p class="hl">${rev?c.hr:c.hl}</p>`
     introTop.innerHTML=intro?html:"";introTop.hidden=!intro;
   }
   function readingNow(){
-    if(N===3)return cur3?(cur3.ai?aiHTML(cur3.ai):"")+spreadHTML(cur3.cards,serious):introSpreadHTML(serious);
-    return cur1?(cur1.ai?aiHTML(cur1.ai):"")+readingHTML(CARDS[cur1.i],cur1.rev,serious):introHTML(serious);
+    const c=curOf(N),anim=!!(c&&c.aiFresh);if(c)c.aiFresh=false;
+    if(N===3)return cur3?(cur3.ai?aiHTML(cur3.ai,anim):"")+spreadHTML(cur3.cards,serious):introSpreadHTML(serious);
+    return cur1?(cur1.ai?aiHTML(cur1.ai,anim):"")+readingHTML(CARDS[cur1.i],cur1.rev,serious):introHTML(serious);
   }
   function applyMode(m,persist){
     serious=(m==="serious");
@@ -977,8 +1034,11 @@ ${sr?`<p class="core">${rev?c.cr:c.cu}</p>`:`<p class="hl">${rev?c.hr:c.hl}</p>`
     if(question)updateUI("カードを読み解いています。10秒ほどお待ちください");
     if(curOf(n)){reading.classList.add("is-hidden");closeCards(n);await sleep(RM?50:850)}
     const els=n===3?sw:[wrap];
+    {const top=(n===3?spreadEl:wrap).getBoundingClientRect().top;if(top<0||top>window.innerHeight*.5){(n===3?spreadEl:wrap).scrollIntoView({behavior:RM?"auto":"smooth",block:"center"})}}
     els.forEach(e=>e.classList.add("shuffling"));await sleep(RM?50:1000);els.forEach(e=>e.classList.remove("shuffling"));
+    if(question)startWait(els);
     const r=await req;
+    stopWait();
     if(!r.ok){
       busy=false;
       if(r.error==="bad_code"){clearCode();salon.hidden=false;salonLink.setAttribute("aria-expanded","true");salonMsg.textContent=MSG.bad_code}
@@ -999,8 +1059,8 @@ ${sr?`<p class="core">${rev?c.cr:c.cu}</p>`:`<p class="hl">${rev?c.hr:c.hl}</p>`
       else{const ec=(r.aiReason||"").split(/[\s:]/)[0].replace(/^http_/,"").slice(0,12);notice="AIの読み解きは今回つくれませんでした。カードの読みだけ表示します。続くときはサロンにお知らせください"+(ec?"(エラー番号: "+ec+")":"");}
     }
     const aiText=(r.via==="server"&&r.reading)?r.reading:null;
-    if(n===3){cur3={cards:r.cards,ai:aiText};st.lastS=r.cards;fillSpread(r.cards)}
-    else{cur1=Object.assign({},r.cards[0],{ai:aiText});st.last=r.cards[0];fillSingle(r.cards[0])}
+    if(n===3){cur3={cards:r.cards,ai:aiText,aiFresh:!!aiText};st.lastS=r.cards;fillSpread(r.cards)}
+    else{cur1=Object.assign({},r.cards[0],{ai:aiText,aiFresh:!!aiText});st.last=r.cards[0];fillSingle(r.cards[0])}
     if(isShop()){const keep=load();keep.last=null;keep.lastS=null;save(keep)}else save(st);
     await openCards(n,true);
     await sleep(RM?50:850);
