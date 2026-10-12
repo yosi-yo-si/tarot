@@ -252,6 +252,26 @@ details.other+details.other{margin-top:10px}
 .backwrap{margin-top:30px;padding-top:22px;border-top:1px solid var(--line);display:flex;justify-content:center}
 .btn.ghost{background:transparent;color:var(--fg);border-color:var(--line)}
 .again{margin:0}
+
+/* tier backgrounds: public = plain, 合言葉版 = dusk glow, AI版 = starry night */
+html[data-tier="cust"] body{
+  background:
+    radial-gradient(900px 420px at 12% -8%,color-mix(in srgb,#f0a3b5 30%,transparent),transparent 70%),
+    radial-gradient(900px 460px at 92% -4%,color-mix(in srgb,#a99bf0 32%,transparent),transparent 72%),
+    var(--bg);
+  background-attachment:fixed;
+}
+html[data-tier="ai"] body{
+  background:
+    radial-gradient(1.4px 1.4px at 18px 26px,color-mix(in srgb,var(--fg) 30%,transparent) 99%,transparent),
+    radial-gradient(1px 1px at 92px 70px,color-mix(in srgb,var(--fg) 24%,transparent) 99%,transparent),
+    radial-gradient(1.6px 1.6px at 140px 128px,color-mix(in srgb,var(--accent) 45%,transparent) 99%,transparent),
+    radial-gradient(1px 1px at 60px 150px,color-mix(in srgb,var(--fg) 20%,transparent) 99%,transparent),
+    linear-gradient(180deg,color-mix(in srgb,#2a2f7a 26%,transparent) 0,transparent 520px),
+    var(--bg);
+  background-size:170px 170px,170px 170px,170px 170px,170px 170px,100% 100%,auto;
+  background-attachment:fixed;
+}
 .foot{margin:44px 0 0;color:var(--muted);font-size:.8rem;text-align:center}
 </style>
 </head>
@@ -741,6 +761,8 @@ function detailHTML(c,sr){
   const $=s=>document.querySelector(s);
   const wrap=$("#card"),front=$("#frontFace"),reading=$("#reading"),drawBtn=$("#drawBtn"),revToggle=$("#revToggle");
   const RM=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
+  try{if("scrollRestoration" in history)history.scrollRestoration="manual"}catch(e){}
+  window.scrollTo(0,0);
   const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   const rnd=n=>{try{const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]%n}catch(e){return Math.floor(Math.random()*n)}};
 
