@@ -334,7 +334,7 @@ details.other+details.other{margin-top:10px}
               <p class="qnote help">つらい気持ちが続くときは、占いより先に相談してください。よりそいホットライン <a href="tel:0120279338">0120-279-338</a>/#いのちSOS <a href="tel:0120061338">0120-061-338</a>(どちらも24時間・無料)</p>
             </div>
             <p class="qnote teaser" id="aiTeaser" hidden>AIによる読み解きは、サロン店頭のiPadで体験できます。</p>
-            <div class="tabs sm" role="group" aria-label="引く枚数">
+            <div class="tabs sm" id="nGroup" role="group" aria-label="引く枚数">
               <button type="button" id="nOne" aria-pressed="true">1枚</button>
               <button type="button" id="nThree" aria-pressed="false">3枚(過去・現在・未来)</button>
             </div>
@@ -981,11 +981,14 @@ ${sr?`<p class="core">${rev?c.cr:c.cu}</p>`:`<p class="hl">${rev?c.hr:c.hl}</p>`
     nOne.disabled=nThree.disabled=busy;
     codeOff.hidden=!getCode();
     qBox.hidden=!isShop();
+    $("#nGroup").hidden=!isShop();
+    if(!isShop()&&N!==3&&!busy){setN(3,false);return}
     const sv=savedOf(N);$("#againBtn").hidden=!(sv&&!curOf(N)&&!isShop())||busy;
     $("#aiTeaser").hidden=!(getCode()&&!isShop());
     $("#nextBtn").hidden=!(isShop()&&(cur1||cur3))||busy;
   }
   function setN(n,persist){
+    if(!isShop())n=3; /* 合言葉版(お客様用)は3枚引きだけ */
     N=n===3?3:1;
     nOne.setAttribute("aria-pressed",String(N===1));nThree.setAttribute("aria-pressed",String(N===3));
     stage.classList.toggle("is-spread",N===3);viewDrawEl.classList.toggle("is-spread",N===3);
