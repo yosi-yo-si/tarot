@@ -859,6 +859,7 @@ ${sr?`<p class="core">${rev?c.cr:c.cu}</p>`:`<p class="hl">${rev?c.hr:c.hl}</p>`
 
 (function(){
   const $=s=>document.querySelector(s);
+  const CREATIVE=document.documentElement.dataset.creative==="true";
   const wrap=$("#card"),front=$("#frontFace"),reading=$("#reading"),drawBtn=$("#drawBtn"),revToggle=$("#revToggle");
   const RM=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
   try{if("scrollRestoration" in history)history.scrollRestoration="manual"}catch(e){}
@@ -871,7 +872,7 @@ ${sr?`<p class="core">${rev?c.cr:c.cu}</p>`:`<p class="hl">${rev?c.hr:c.hl}</p>`
   revToggle.addEventListener("change",()=>{try{localStorage.setItem("arcana.rev",revToggle.checked?"1":"0")}catch(e){}});
 
   /*LIMIT-START*/
-  const LIMIT=3,KEY="arcana.daily";
+  const LIMIT=3,KEY=CREATIVE?"arcana.creative.daily":"arcana.daily";
   const today=()=>new Date().toLocaleDateString("sv-SE",{timeZone:"Asia/Tokyo"});
   const isFree=()=>location.hash==="#free";
   let mem=null;
@@ -886,7 +887,8 @@ ${sr?`<p class="core">${rev?c.cr:c.cu}</p>`:`<p class="hl">${rev?c.hr:c.hl}</p>`
   function save(st){mem=st;try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){}}
   /*LIMIT-END*/
 
-  const API="https://muddy-forest-46d0.yosiken0126.workers.dev";
+  const API=CREATIVE?"https://tsukiyo-creative-api.yosiken0126.workers.dev":"https://muddy-forest-46d0.yosiken0126.workers.dev";
+  const SRV_KEY=CREATIVE?"arcana.creative.srv":"arcana.srv";
   const qBox=$("#qBox"),qIn=$("#qIn"),qCount=$("#qCount");
   qIn.addEventListener("input",()=>{qCount.textContent=Array.from(qIn.value).length+" / 300"});
   const stage=$("#stage"),spreadEl=$("#spread"),nOne=$("#nOne"),nThree=$("#nThree");
@@ -905,19 +907,19 @@ ${sr?`<p class="core">${rev?c.cr:c.cu}</p>`:`<p class="hl">${rev?c.hr:c.hl}</p>`
     }
     memCid=v;return v;
   }
-  const getCode=()=>lsGet("arcana.code")||memCode||"";
+  const getCode=()=>CREATIVE?"":lsGet("arcana.code")||memCode||"";
   function setCode(v){memCode=v;lsSet("arcana.code",v);memRole="";lsDel("arcana.role");lsDel("arcana.shop")}
   let memRole="";
-  const role=()=>{if(!getCode())return"";const r=lsGet("arcana.role")||memRole;if(r==="owner"||r==="shop"||r==="cust")return r;return lsGet("arcana.shop")==="1"?"shop":"cust"};
-  const isShop=()=>role()==="shop"||role()==="owner";
-  function setRole(r){memRole=r;lsSet("arcana.role",r);lsDel("arcana.shop")}
+  const role=()=>{if(CREATIVE)return"creative";if(!getCode())return"";const r=lsGet("arcana.role")||memRole;if(r==="owner"||r==="shop"||r==="cust")return r;return lsGet("arcana.shop")==="1"?"shop":"cust"};
+  const isShop=()=>CREATIVE||role()==="shop"||role()==="owner";
+  function setRole(r){if(CREATIVE)return;memRole=r;lsSet("arcana.role",r);lsDel("arcana.shop")}
   function clearCode(){memCode=null;lsDel("arcana.code");memSrv=null;lsDel("arcana.srv");memRole="";lsDel("arcana.role");lsDel("arcana.shop")}
   function loadSrv(){
-    let s=null;try{s=JSON.parse(lsGet("arcana.srv"))}catch(e){}
+    let s=null;try{s=JSON.parse(lsGet(SRV_KEY))}catch(e){}
     if(!s&&memSrv)s=memSrv;
     return s&&s.d===today()&&typeof s.left==="number"?s:null;
   }
-  function saveSrv(left){memSrv={d:today(),left:left};lsSet("arcana.srv",JSON.stringify(memSrv))}
+  function saveSrv(left){memSrv={d:today(),left:left};lsSet(SRV_KEY,JSON.stringify(memSrv))}
 
   let busy=false,drawId=0,serious=false,N=1,cur1=null,cur3=null;
   const remainEl=$("#remain"),modeSoft=$("#modeSoft"),modeSerious=$("#modeSerious"),foot=$("#foot");
@@ -973,12 +975,13 @@ ${sr?`<p class="core">${rev?c.cr:c.cu}</p>`:`<p class="hl">${rev?c.hr:c.hl}</p>`
     modeSoft.setAttribute("aria-pressed",String(!serious));modeSerious.setAttribute("aria-pressed",String(serious));
     foot.textContent=serious?FOOT_SERIOUS:FOOT_SOFT;
     if(!busy)paintReading();
-    if(persist)lsSet("arcana.mode",serious?"serious":"soft");
+    if(persist)lsSet(CREATIVE?"arcana.creative.mode":"arcana.mode",serious?"serious":"soft");
   }
   modeSoft.addEventListener("click",()=>applyMode("soft",true));
   modeSerious.addEventListener("click",()=>applyMode("serious",true));
 
   function status(){
+    if(CREATIVE){const s=loadSrv();return{stop:!!(s&&s.left<=0),text:s?(s.left>0?"創作用：本日あと"+s.left+"回（全利用者で共有）":"創作用：本日の回数を使い切りました。明日またどうぞ") : "創作用：1日20回まで（全利用者で共有・日本時間で更新）"}}
     if(role()==="owner")return{stop:false,text:"オーナー用:回数の制限はありません"};
     if(role()==="shop"){
       const s=loadSrv();
@@ -1006,14 +1009,15 @@ ${sr?`<p class="core">${rev?c.cr:c.cu}</p>`:`<p class="hl">${rev?c.hr:c.hl}</p>`
     if(isShop())document.documentElement.setAttribute("data-tier","ai");
     else if(getCode())document.documentElement.setAttribute("data-tier","cust");
     else document.documentElement.removeAttribute("data-tier");
-    $("#nGroup").hidden=!isShop();
+    $("#nGroup").hidden=CREATIVE||!isShop();
+    if(CREATIVE){salonLink.hidden=true;salon.hidden=true;$("#nextBtn").textContent="新しい物語の相談へ";}
     if(!isShop()&&N!==3&&!busy){setN(3,false);return}
     const sv=savedOf(N);$("#againBtn").hidden=!(sv&&!curOf(N)&&!isShop())||busy;
     $("#aiTeaser").hidden=!(getCode()&&!isShop());
     $("#nextBtn").hidden=!(isShop()&&(cur1||cur3))||busy;
   }
   function setN(n,persist){
-    if(!isShop())n=3; /* 合言葉版(お客様用)は3枚引きだけ */
+    if(CREATIVE||!isShop())n=3; /* 合言葉版(お客様用)は3枚引きだけ */
     N=n===3?3:1;
     nOne.setAttribute("aria-pressed",String(N===1));nThree.setAttribute("aria-pressed",String(N===3));
     stage.classList.toggle("is-spread",N===3);viewDrawEl.classList.toggle("is-spread",N===3);
@@ -1033,21 +1037,22 @@ ${sr?`<p class="core">${rev?c.cr:c.cu}</p>`:`<p class="hl">${rev?c.hr:c.hl}</p>`
   }
   async function getDraw(n,question){
     const code=getCode();
-    if(code){
+    if(code||CREATIVE){
       try{
         const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),question?35000:8000);
-        const r=await fetch(API+"/api/draw",{method:"POST",headers:{"content-type":"application/json"},signal:ctl.signal,
+        const r=await fetch(API+(CREATIVE?"/api/creative/draw":"/api/draw"),{method:"POST",headers:{"content-type":"application/json"},signal:ctl.signal,
           body:JSON.stringify({code:code,clientId:cid(),allowRev:revToggle.checked,spread:n===3?3:1,question:question||undefined,tone:serious?"serious":"soft"})});
         clearTimeout(tm);
         let j=null;try{j=await r.json()}catch(e){}
         if(r.ok&&j&&j.ok){
           const cards=Array.isArray(j.cards)?j.cards:[{i:j.i,rev:j.rev}];
           const okc=cards.length===(n===3?3:1)&&cards.every(c=>Number.isInteger(c.i)&&c.i>=0&&c.i<22);
-          if(okc)return{ok:true,cards:cards.map(c=>({i:c.i,rev:!!c.rev})),via:"server",shop:j.shop===true,role:(j.role==="owner"||j.role==="shop"||j.role==="cust")?j.role:(j.shop===true?"shop":"cust"),remaining:j.remaining,ai:j.ai,aiReason:j.ai_reason||"",reading:(typeof j.reading==="string"&&j.reading)?j.reading:null};
-        } else if(j&&(j.error==="bad_code"||j.error==="limit"||j.error==="busy"||j.error==="locked")){
+          if(okc)return{ok:true,cards:cards.map(c=>({i:c.i,rev:!!c.rev})),via:"server",shop:j.shop===true,role:(CREATIVE?j.role==="creative":(j.role==="owner"||j.role==="shop"||j.role==="cust"))?j.role:(j.shop===true?"shop":"cust"),remaining:j.remaining,ai:j.ai,aiReason:j.ai_reason||"",reading:(typeof j.reading==="string"&&j.reading)?j.reading:null};
+        } else if(j&&(j.error==="bad_code"||j.error==="limit"||j.error==="busy"||j.error==="locked"||j.error==="unavailable"||j.error==="bad_request")){
           return{ok:false,error:j.error};
         }
       }catch(e){}
+      if(CREATIVE)return{ok:false,error:"unavailable"};
       const st=load();
       if(!isFree()&&st.n>=LIMIT)return{ok:false,error:"limit_local"};
       return{ok:true,cards:localDraw(n),via:"fallback"};
@@ -1055,6 +1060,9 @@ ${sr?`<p class="core">${rev?c.cr:c.cu}</p>`:`<p class="hl">${rev?c.hr:c.hl}</p>`
     return{ok:true,cards:localDraw(n),via:"local"};
   }
   const MSG={
+    unavailable:"創作用のAIに接続できませんでした。時間をおいて再度お試しください。",
+    bad_request:"相談文を300文字以内で入力してから引いてください。",
+    limit:"本日の回数を使い切りました。日本時間の明日、またお試しください。",
     bad_code:"合言葉が違います。もう一度ご確認ください。",
     busy:"本日はたいへん混み合っています。明日またお試しください。",
     locked:"入力の誤りが続いたため、本日はこの回線から使えません。"
@@ -1064,6 +1072,7 @@ ${sr?`<p class="core">${rev?c.cr:c.cu}</p>`:`<p class="hl">${rev?c.hr:c.hl}</p>`
     if(status().stop){updateUI();return}
     busy=true;drawBtn.disabled=true;nOne.disabled=nThree.disabled=true;const myId=++drawId;const n=N;
     const question=isShop()?Array.from(qIn.value.trim()).slice(0,300).join(""):"";
+    if(CREATIVE&&!question){busy=false;updateUI(MSG.bad_request);qIn.focus();return}
     const req=getDraw(n,question);
     if(question)updateUI("カードを読み解いています。10秒ほどお待ちください");
     if(curOf(n)){reading.classList.add("is-hidden");closeCards(n);await sleep(RM?50:850)}
@@ -1128,12 +1137,12 @@ ${sr?`<p class="core">${rev?c.cr:c.cu}</p>`:`<p class="hl">${rev?c.hr:c.hl}</p>`
   reading.addEventListener("click",e=>{const b=e.target.closest("[data-act=home]");if(b)goHome(isShop())});
   /* salon iPad: go back to the first screen after 5 minutes without touches */
   let idleT=null;
-  function bumpIdle(){clearTimeout(idleT);idleT=setTimeout(()=>{if(isShop()&&(cur1||cur3)&&!busy)goHome(true)},5*60*1000)}
+  function bumpIdle(){clearTimeout(idleT);idleT=setTimeout(()=>{if(!CREATIVE&&isShop()&&(cur1||cur3)&&!busy)goHome(true)},5*60*1000)}
   ["pointerdown","keydown","scroll"].forEach(ev=>window.addEventListener(ev,bumpIdle,{passive:true}));bumpIdle();
   (function restore(){
     /* always start from the first screen; today's result can be reopened with againBtn */
-    applyMode(lsGet("arcana.mode")==="serious"?"serious":"soft",false);
-    setN(lsGet("arcana.n")==="3"?3:1,false);
+    applyMode(CREATIVE||lsGet("arcana.mode")==="serious"?"serious":"soft",false);
+    setN(CREATIVE||lsGet("arcana.n")==="3"?3:1,false);
   })();
   drawBtn.addEventListener("click",draw);
   wrap.addEventListener("click",draw);
