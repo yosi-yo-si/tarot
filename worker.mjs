@@ -273,3 +273,6 @@ export default {
     return json({ ok: false, error: "not_found" }, 404, headers);
   },
 };
+
+// Shared reading helpers; the salon authentication routes stay unchanged.
+export { aiReading, cleanQuestion, rnd };
