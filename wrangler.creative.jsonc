@@ -1,0 +1,16 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "tsukiyo-creative-api",
+  "main": "creative-worker.mjs",
+  "compatibility_date": "2026-08-01",
+  "workers_dev": true,
+  "vars": {
+    "CREATIVE_ENABLED": "1",
+    "CREATIVE_DAILY_CAP": "20"
+  },
+  "durable_objects": {
+    "bindings": [{ "name": "CREATIVE_QUOTA", "class_name": "CreativeQuota" }]
+  },
+  "migrations": [{ "tag": "creative-v1", "new_sqlite_classes": ["CreativeQuota"] }],
+  "observability": { "enabled": false }
+}
