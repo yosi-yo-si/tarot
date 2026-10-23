@@ -1,0 +1,16 @@
+{
+  "name": "tsukiyo-arcana",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build-creative.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "deploy:creative-api": "wrangler deploy --config wrangler.creative.jsonc",
+    "secret:creative-api": "wrangler secret put ANTHROPIC_API_KEY --config wrangler.creative.jsonc"
+  },
+  "devDependencies": {
+    "jsdom": "26.1.0",
+    "miniflare": "4.20260730.0",
+    "wrangler": "4.152.0"
+  }
+}
