@@ -1,0 +1,11 @@
+{
+  "name": "tarot-draw-runner",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "draw": "node draw.mjs"
+  },
+  "dependencies": {
+    "playwright": "^1.58.0"
+  }
+}
